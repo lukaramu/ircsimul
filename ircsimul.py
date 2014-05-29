@@ -12,6 +12,8 @@ from random import uniform
 # TODO: flag to hide initial population joins/leaves/quits
 # TODO: instead of truncating lines at commas, spread message out over seperate messages
 # TODO: generate nicknames from proper nouns in text
+# TODO: increment time during time increments
+# TODO: add/subtract from onlineNicks, onlineActivityTotal and offlineActivityTotal in seperate function
 
 # new features:
 # TODO: user adresses (e.g. water@like.from.the.toilet) (must be bound to nick and kept through nickchange)
@@ -58,6 +60,8 @@ channelName = 'channel'
 userCount = 40                      # still unused
 minOnline = 5
 minOffline = 5
+initialPopulation = 10
+logInitialPopulation = False
 
 # cumulative, so actionProbability is 0.01 in reality
 # TODO: make this not cumulative
@@ -139,10 +143,10 @@ def loadNicks():
     # sums of activity numbers for weighted choice
     global activityTotal
     activityTotal = sum(activity[nick] for nick in nicks)
-    global offlineTotal
-    offlineTotal = 0
-    global onlineTotal
-    onlineTotal = 0
+    global offlineActivityTotal
+    offlineActivityTotal = 0
+    global onlineActivityTotal
+    onlineActivityTotal = 0
 
 def loadReasons():
     # loads up reasons dictionary and start list
@@ -166,15 +170,48 @@ def writeReason():
 def getUser():
     return "users@will.be.implemented.later"
 
+def setOnline(nick):
+    if nick in offline:
+        online.append(nick)
+        offline.remove(nick)
+
+        global onlineActivityTotal
+        global offlineActivityTotal
+        onlineActivityTotal += activity[nick]
+        offlineActivityTotal -= activity[nick]
+        global onlineNicks
+        onlineNicks += 1
+
+def setOffline(nick):
+    if nick in online:
+        online.remove(nick)
+        offline.append(nick)
+
+        global onlineActivityTotal
+        global offlineActivityTotal
+        onlineActivityTotal -= activity[nick]
+        offlineActivityTotal += activity[nick]
+        global onlineNicks
+        onlineNicks -= 1
+
+def populateChannel():
+    # populates channel with initialPopulation users
+    if logInitialPopulation:
+        while onlineNicks < initialPopulation:
+            writeJoin(selectOfflineNick())
+    else:
+        while onlineNicks < initialPopulation:
+            setOnline(selectOfflineNick())
+
 def selectNick():
     return weightedChoiceWithTotal(nicks, activity, activityTotal)
 
 # TODO: optimize so that total probability is updated during joins/parts, making repeated summing redundant
 def selectOnlineNick():
-    return weightedChoiceWithTotal(online, activity, onlineTotal)
+    return weightedChoiceWithTotal(online, activity, onlineActivityTotal)
 
 def selectOfflineNick():
-    return weightedChoiceWithTotal(offline, activity, offlineTotal)
+    return weightedChoiceWithTotal(offline, activity, offlineActivityTotal)
 
 def writeTime():
     lf.write(str(date.hour).zfill(2))
@@ -183,8 +220,6 @@ def writeTime():
 
 def writeLeaveOrQuit(nick, isQuit):
     # writes leave or quit message to log
-    online.remove(nick)
-    offline.append(nick)
     writeTime()
     lf.write(" -!- ")
     lf.write(nick)
@@ -200,20 +235,12 @@ def writeLeaveOrQuit(nick, isQuit):
     writeReason()
     lf.write("]\n")
 
-    global onlineNicks
-    onlineNicks -= 1
-    global onlineTotal
-    global offlineTotal
-    onlineTotal -= activity[nick]
-    offlineTotal += activity[nick]
+    setOffline(nick)
 
     incrementLineCount()
 
 def writeJoin(nick):
     # writes join message to log
-    online.append(nick)
-    offline.remove(nick)
-
     writeTime()
     lf.write(" -!- ")
     lf.write(nick)
@@ -224,12 +251,7 @@ def writeJoin(nick):
     lf.write(channelName)
     lf.write("\n")
 
-    global onlineNicks
-    onlineNicks += 1
-    global onlineTotal
-    global offlineTotal
-    onlineTotal += activity[nick]
-    offlineTotal -= activity[nick]
+    setOnline(nick)
 
     incrementLineCount()
 
@@ -258,9 +280,6 @@ def kickEvent():
     while kicker == kickee:
         kicker = selectOnlineNick()
 
-    online.remove(kickee)
-    offline.append(kickee)
-    
     writeTime()
     lf.write(" -!- ")
     lf.write(kickee)
@@ -274,12 +293,7 @@ def kickEvent():
 
     incrementLineCount()
 
-    global onlineNicks
-    onlineNicks -= 1
-    global onlineTotal
-    global offlineTotal
-    onlineTotal -= activity[kickee]
-    offlineTotal += activity[kickee]
+    setOffline(kickee)
 
     # make sure some amount of peeps are online or offline
     checkPopulation()
@@ -366,9 +380,8 @@ def main():
 
     incrementLineCount()
 
-    # initial filling of channel
-    for i in range(0, 10):
-        joinPartEvent()
+    # initial population of channel
+    populateChannel()
 
     # bulk of messages
     while totalLines < lineMax - 1:
