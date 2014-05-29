@@ -80,7 +80,7 @@ EOS = ['.', '?', '!', ':', '"', ':', ',', ';']
 
 def buildDict(words):
     # builds morkov dictionary from given words
-    # taken from http://pythonadventures.wordpress.com/2014/01/23/generating-pseudo-random-text-using-markov-chains/
+    # based on http://pythonadventures.wordpress.com/2014/01/23/generating-pseudo-random-text-using-markov-chains/
     dictionary = {}
     for i, word in enumerate(words):
         try:
@@ -231,7 +231,7 @@ def kickEvent():
 
 def writeSentence(d, li):
     # generates message from given markov dictionary
-    # taken from http://pythonadventures.wordpress.com/2014/01/23/generating-pseudo-random-text-using-markov-chains/
+    # based on http://pythonadventures.wordpress.com/2014/01/23/generating-pseudo-random-text-using-markov-chains/
     key = choice(li)
 
     first, second = key
