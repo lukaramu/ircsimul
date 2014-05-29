@@ -10,11 +10,8 @@ from random import uniform
 
 # TODO: find alternative to/optimize repeated choices, e.g. cache list lenghts? choice() runs 37.5% of the time
 # TODO: faster version to fill in the zero (instead of zfill?)
-# TODO: flag to hide initial population joins/leaves/quits
-# TODO: instead of truncating lines at commas, spread message out over seperate messages
+# TODO: instead of/additionally to truncating lines at commas, spread message out over seperate messages
 # TODO: generate nicknames from proper nouns in text
-# TODO: increment time during time increments
-# TODO: add/subtract from onlineNicks, onlineActivityTotal and offlineActivityTotal in seperate function
 
 # new features:
 # TODO: user adresses (e.g. water@like.from.the.toilet) (must be bound to nick and kept through nickchange)
@@ -28,8 +25,11 @@ from random import uniform
 
 # TODO: make them say hi sometimes?
 # TODO: make kicks have an internal reason
+# TODO: extract pprinted metadata
 
 # TODO: different nicks, different behaviour (longshot):
+# remove punctuation
+# all lowercase
 # average word count
 # average word length (if possible)
 # ALLCAPS MESSAGES
@@ -65,7 +65,6 @@ initialPopulation = 10
 logInitialPopulation = False
 
 # cumulative, so actionProbability is 0.01 in reality
-# TODO: make this not cumulative
 kickProbability = 0.002
 actionProbability = 0.01
 joinPartProbability = 0.05
@@ -398,6 +397,7 @@ def main():
             incrementLine()
 
         # generate line
+        # TODO: make this choice with weightedChoice() and exec()
         determineType = random()
         if determineType > joinPartProbability:
             # user message
