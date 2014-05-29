@@ -1,5 +1,6 @@
 import datetime
 import logging
+import cProfile
 from math import sin
 from math import pi
 from random import choice
@@ -159,9 +160,13 @@ def loadReasons():
     reasonsStartList = buildStartlist(reasonsDict)
     reasonsFile.close()
 
-def incrementLineCount():
+def incrementLine():
     global totalLines
     totalLines += 1
+
+    # TODO: better way to handle activity?
+    global date
+    date = date + datetime.timedelta(seconds = choice(timeSpan) * (sin((date.hour + 12) * pi / 24) + 1.5))
 
 def writeReason():
     # generates a reason
@@ -237,7 +242,7 @@ def writeLeaveOrQuit(nick, isQuit):
 
     setOffline(nick)
 
-    incrementLineCount()
+    incrementLine()
 
 def writeJoin(nick):
     # writes join message to log
@@ -253,7 +258,7 @@ def writeJoin(nick):
 
     setOnline(nick)
 
-    incrementLineCount()
+    incrementLine()
 
 def checkPopulation():
     # makes sure some amount of peeps are online or offline
@@ -291,7 +296,7 @@ def kickEvent():
     writeReason()
     lf.write("]\n")
 
-    incrementLineCount()
+    incrementLine()
 
     setOffline(kickee)
 
@@ -329,7 +334,7 @@ def writeMessage(nick):
     writeSentence(messageDict, startList)
     lf.write("\n")
 
-    incrementLineCount()
+    incrementLine()
 
 def userAction():
     writeTime()
@@ -339,7 +344,7 @@ def userAction():
     # TODO: implement variable user action text (best with leading space)
     lf.write(" does action\n")
 
-    incrementLineCount()
+    incrementLine()
 
 def main():
     # generate dictionary
@@ -378,7 +383,7 @@ def main():
         str(date.day).zfill(2) + " " + str(date.hour).zfill(2) + ":" + str(date.minute).zfill(2) + 
         ":" + str(date.second).zfill(2) + " " + str(date.year) + "\n")
 
-    incrementLineCount()
+    incrementLine()
 
     # initial population of channel
     populateChannel()
@@ -390,7 +395,7 @@ def main():
             lf.write("--- Day changed " + days[date.weekday()] + months[date.month - 1] + 
             str(date.day).zfill(2) + " " + str(date.year) + "\n")
             daycache = date.day
-            incrementLineCount()
+            incrementLine()
 
         # generate line
         determineType = random()
@@ -407,17 +412,17 @@ def main():
             # kick event
             kickEvent()
 
-        # TODO: outsource timedelta function??? better way to handle activity?
-        date = date + datetime.timedelta(seconds = choice(timeSpan) * (sin((date.hour + 12) * pi / 24) + 1.5))
-
     # write log closing message
     lf.write("--- Log closed " + days[date.weekday()] + months[date.month - 1] + 
         str(date.day).zfill(2) + " " + str(date.hour).zfill(2) + ":" + str(date.minute).zfill(2) + 
         ":" + str(date.second).zfill(2) + " " + str(date.year) + "\n")
-    incrementLineCount()
+    incrementLine()
 
     # close log file
     lf.close()
+
+def profileMain():
+    cProfile.run('ircsimul.main()')
 
 if __name__ == "__main__":
     main()
