@@ -257,6 +257,10 @@ def kickEvent():
     kicker = selectOnlineNick()
     while kicker == kickee:
         kicker = selectOnlineNick()
+
+    online.remove(kickee)
+    offline.append(kickee)
+    
     writeTime()
     lf.write(" -!- ")
     lf.write(kickee)
@@ -271,11 +275,11 @@ def kickEvent():
     incrementLineCount()
 
     global onlineNicks
-    onlineNicks += 1
+    onlineNicks -= 1
     global onlineTotal
     global offlineTotal
-    onlineTotal += activity[nick]
-    offlineTotal -= activity[nick]
+    onlineTotal -= activity[kickee]
+    offlineTotal += activity[kickee]
 
     # make sure some amount of peeps are online or offline
     checkPopulation()
