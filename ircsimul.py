@@ -9,7 +9,8 @@ from random import randint
 # TODO: find alternative to/optimize repeated choices, e.g. cache list lenghts? choice() runs 37.5% of the time
 # TODO: faster version to fill in the zero (instead of zfill?)
 # TODO: flag to hide initial population joins/leaves/quits
-# TODO: Instead of truncating lines at commas, spread message out over seperate messages
+# TODO: instead of truncating lines at commas, spread message out over seperate messages
+# TODO: generate nicknames from proper nouns in text
 
 # new features:
 # TODO: user adresses (e.g. water@like.from.the.toilet) (must be bound to nick and kept through nickchange)
@@ -44,12 +45,13 @@ from random import randint
 # liking to kick
 # being kicked often
 
-logging.basicConfig(filename='debug.log', level=logging.DEBUG)
+# logging.basicConfig(filename='debug.log', level=logging.DEBUG)
 
 # flags and sizes, set by user
-# TODO: Make them command line arguments?
-messageTotal = 500000
+# TODO: Make some of them command line arguments?
+lineMax = 50000   
 logfileName = 'ircsimul.log'
+sourcefileName = 'ZARATHUSTRA.txt'
 nickfileName = 'nicks.txt'
 reasonsfileName = 'reasons.txt'
 channelName = 'channel'
@@ -129,6 +131,10 @@ def loadReasons():
     reasonsStartList = buildStartlist(reasonsDict)
     reasonsFile.close()
 
+def incrementLineCount():
+    global totalLines
+    totalLines += 1
+
 def writeReason():
     # generates a reason
     writeSentence(reasonsDict, reasonsStartList)
@@ -173,6 +179,8 @@ def writeLeaveOrQuit(nick, isQuit):
     global onlineNicks
     onlineNicks -= 1
 
+    incrementLineCount()
+
 def writeJoin(nick):
     # writes join message to log
     online.append(nick)
@@ -190,6 +198,8 @@ def writeJoin(nick):
 
     global onlineNicks
     onlineNicks += 1
+
+    incrementLineCount()
 
 def checkPopulation():
     # makes sure some amount of peeps are online or offline
@@ -226,6 +236,8 @@ def kickEvent():
     writeReason()
     lf.write("]\n")
 
+    incrementLineCount()
+
     # make sure some amount of peeps are online or offline
     checkPopulation()
 
@@ -260,6 +272,8 @@ def writeMessage(nick):
     writeSentence(messageDict, startList)
     lf.write("\n")
 
+    incrementLineCount()
+
 def userAction():
     writeTime()
     lf.write("  * ")
@@ -268,9 +282,11 @@ def userAction():
     # TODO: implement variable user action text (best with leading space)
     lf.write(" does action\n")
 
+    incrementLineCount()
+
 def main():
     # generate dictionary
-    sourceFile = open('ZARATHUSTRA.txt', 'rt')
+    sourceFile = open(sourcefileName, 'rt')
     text = sourceFile.read()
     sourceFile.close()
     words = text.split()
@@ -296,22 +312,29 @@ def main():
     global lf
     lf = open(logfileName, 'w')
 
+    # number of total lines
+    global totalLines
+    totalLines = 0
+
     # write opening of log
     lf.write("--- Log opened " + days[date.weekday()] + months[date.month - 1] + 
         str(date.day).zfill(2) + " " + str(date.hour).zfill(2) + ":" + str(date.minute).zfill(2) + 
         ":" + str(date.second).zfill(2) + " " + str(date.year) + "\n")
+
+    incrementLineCount()
 
     # initial filling of channel
     for i in range(0, 10):
         joinPartEvent()
 
     # bulk of messages
-    for i in range(0,messageTotal):
+    while totalLines < lineMax - 1:
         # check if day changed, if so, write day changed message
         if daycache != date.day:
             lf.write("--- Day changed " + days[date.weekday()] + months[date.month - 1] + 
             str(date.day).zfill(2) + " " + str(date.year) + "\n")
             daycache = date.day
+            incrementLineCount()
 
         # generate line
         determineType = random()
@@ -335,6 +358,7 @@ def main():
     lf.write("--- Log closed " + days[date.weekday()] + months[date.month - 1] + 
         str(date.day).zfill(2) + " " + str(date.hour).zfill(2) + ":" + str(date.minute).zfill(2) + 
         ":" + str(date.second).zfill(2) + " " + str(date.year) + "\n")
+    incrementLineCount()
 
     # close log file
     lf.close()
