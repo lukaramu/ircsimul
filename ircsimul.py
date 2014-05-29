@@ -5,6 +5,7 @@ from math import pi
 from random import choice
 from random import random
 from random import randint
+from random import uniform
 
 # TODO: find alternative to/optimize repeated choices, e.g. cache list lenghts? choice() runs 37.5% of the time
 # TODO: faster version to fill in the zero (instead of zfill?)
@@ -26,7 +27,6 @@ from random import randint
 # TODO: make kicks have an internal reason
 
 # TODO: different nicks, different behaviour (longshot):
-# general activity
 # average word count
 # average word length (if possible)
 # ALLCAPS MESSAGES
@@ -49,12 +49,13 @@ from random import randint
 
 # flags and sizes, set by user
 # TODO: Make some of them command line arguments?
-lineMax = 50000   
+lineMax = 200000
 logfileName = 'ircsimul.log'
 sourcefileName = 'ZARATHUSTRA.txt'
 nickfileName = 'nicks.txt'
 reasonsfileName = 'reasons.txt'
 channelName = 'channel'
+userCount = 40                      # still unused
 minOnline = 5
 minOffline = 5
 
@@ -79,6 +80,20 @@ months = ['Jan ', 'Feb ', 'Mar ', 'Apr ', 'May ', 'Jun ', 'Jul ', 'Aug ', 'Sep '
 # list with symbols that end a sentence
 # add ':', ',' for shorter messages?
 EOS = ['.', '?', '!', ':', '"', ':', ',', ';']
+
+def weightedChoice(choice, weights):
+    total = 0
+    for c in choices:
+        total += weights[c]
+    return weightedChoiceWithTotal(choice, weights, total)
+
+def weightedChoiceWithTotal(choices, weights, total):
+    r = uniform(0, total)
+    upto = 0
+    for c in choices:
+        upto += weights[c]
+        if r <= upto:
+            return c
 
 def buildDict(words):
     # builds morkov dictionary from given words
@@ -117,8 +132,17 @@ def loadNicks():
     global onlineNicks
     onlineNicks = 0
     for nick in nicks:
-        activity[nick] = sin(random() * pi)
+        # TODO: find better activity distribution
+        activity[nick] = (sin(random() * pi) + 1) / 2
         offline.append(nick)
+
+    # sums of activity numbers for weighted choice
+    global activityTotal
+    activityTotal = sum(activity[nick] for nick in nicks)
+    global offlineTotal
+    offlineTotal = 0
+    global onlineTotal
+    onlineTotal = 0
 
 def loadReasons():
     # loads up reasons dictionary and start list
@@ -143,15 +167,14 @@ def getUser():
     return "users@will.be.implemented.later"
 
 def selectNick():
-    return nicks[randint(0, nickNumber - 1)]
+    return weightedChoiceWithTotal(nicks, activity, activityTotal)
 
+# TODO: optimize so that total probability is updated during joins/parts, making repeated summing redundant
 def selectOnlineNick():
-    # TODO: create fallback for when there is noone online
-    return choice(online)
+    return weightedChoiceWithTotal(online, activity, onlineTotal)
 
 def selectOfflineNick():
-    # TODO: create fallback for when there is noone offline
-    return choice(offline)
+    return weightedChoiceWithTotal(offline, activity, offlineTotal)
 
 def writeTime():
     lf.write(str(date.hour).zfill(2))
@@ -176,8 +199,13 @@ def writeLeaveOrQuit(nick, isQuit):
         lf.write(" [")
     writeReason()
     lf.write("]\n")
+
     global onlineNicks
     onlineNicks -= 1
+    global onlineTotal
+    global offlineTotal
+    onlineTotal -= activity[nick]
+    offlineTotal += activity[nick]
 
     incrementLineCount()
 
@@ -198,6 +226,10 @@ def writeJoin(nick):
 
     global onlineNicks
     onlineNicks += 1
+    global onlineTotal
+    global offlineTotal
+    onlineTotal += activity[nick]
+    offlineTotal -= activity[nick]
 
     incrementLineCount()
 
@@ -237,6 +269,13 @@ def kickEvent():
     lf.write("]\n")
 
     incrementLineCount()
+
+    global onlineNicks
+    onlineNicks += 1
+    global onlineTotal
+    global offlineTotal
+    onlineTotal += activity[nick]
+    offlineTotal -= activity[nick]
 
     # make sure some amount of peeps are online or offline
     checkPopulation()
