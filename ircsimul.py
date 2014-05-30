@@ -29,16 +29,12 @@ from random import uniform
 # TODO: extract pprinted metadata
 
 # TODO: different nicks, different behaviour (longshot):
-# remove punctuation
-# all lowercase
 # average word count
 # average word length (if possible)
-# ALLCAPS MESSAGES
 # multiple exclamation marks !!!!!!!!!!!!!!
 # times dumbfounded (???)
 # aloof (doesn't mention often)
 # apostrophe uses?
-# text speach
 # negativity
 # questions asked
 # relationships
@@ -67,13 +63,38 @@ logInitialPopulation = True
 
 lowercaseNickProbability = 0.5
 
-# cumulative, so actionProbability is 0.01 in reality
-kickProbability = 0.002
-actionProbability = 0.01
-joinPartProbability = 0.05
-
 # possibility that a user quits instead of just leaving
 quitProbability = 0.75
+
+# cumulative, so actionProbability is 0.008 in reality
+kickProbability = 0.002
+actionProbability = 0.008 + kickProbability
+joinPartProbability = 0.04 + actionProbability
+# difference to 1: normal message
+
+# probabilities for various user types
+lowercaseNoPunctuationUserProbability = 0.4                                 # type 0
+standardUserProbability = 0.22 + lowercaseNoPunctuationUserProbability      # type 1
+lowercaseUserProbability = 0.15 + standardUserProbability                   # type 2
+uppercaseUserProbability = 0.1 + lowercaseUserProbability                   # type 3
+noPunctuationUserProbability = 0.05 + uppercaseUserProbability              # type 4
+txtSpeechUserProbability = 0.08 + noPunctuationUserProbability              # type 5
+
+# user type IDs
+lowercaseNoPunctuationID = 0
+standardID = 1
+lowercaseID = 2
+uppercaseID = 3
+noPunctuationID = 4
+txtSpeechID = 5
+
+# probability a user type shows his 'non-standard' behavior
+# TODO: make functional
+useLowercaseNoPunctuation = 0.99
+useLowercase = 0.99
+useUppercase = 0.2
+useNoPunctuation = 0.99
+useTxtSpeech = 0.5
 
 # END flags and sizes
 
@@ -132,20 +153,20 @@ def makeTransMaps():
     global noVocalMap
     noVocalMap = str.maketrans('', '', 'aeiou')
 
-def writeLowercase(text):
-    lf.write(text.lower())
-
-def writeAllCaps(text):
-    lf.write(text.upper())
-
-def writeWithoutPunctuation(text):
-    lf.write(text.translate(removePunctuationMap))
-
-def writeLowercaseWithoutPunctuation(text):
-    lf.write(text.translate(removePunctuationAndUpperCaseMap))
-
-def writeTxtSpeech(text):
-    lf.write(text.translate(noVocalMap))
+# writes to log with 'flavour'
+def writeWithFlavour(text, flavourType):
+    if flavourType == lowercaseNoPunctuationID:
+        lf.write(text.translate(removePunctuationAndUpperCaseMap))
+    if flavourType == standardID:
+        lf.write(text)
+    if flavourType == lowercaseID:
+        lf.write(text.lower())
+    if flavourType == uppercaseID:
+        lf.write(text.upper())
+    if flavourType == noPunctuationID:
+        lf.write(text.translate(removePunctuationMap))
+    if flavourType == txtSpeechID:
+        lf.write(text.translate(noVocalMap))
 
 def loadMessages():
     # loads up message dictionary and start list
@@ -186,6 +207,7 @@ def loadNicks():
         nick = startList[randint(0, startListLenght - 1)][0]
 
         # make sure nick isn't in nicks and of some lenght
+        # TODO: make comparison ignore case
         while (nick in nicks) or (len(nick) < minNickLenght):
             nick = startList[randint(0, startListLenght - 1)][0]
         # remove punctuation from nick, make some of them lowercase
@@ -202,10 +224,28 @@ def loadNicks():
     offline = []
     global onlineNicks
     onlineNicks = 0
+    global userTypes
+    userTypes = {}
     for nick in nicks:
         # TODO: find better activity distribution
         activity[nick] = (sin(random() * pi) + 1) / 2
         offline.append(nick)
+
+        # choose user type
+        # TODO: make this not messy
+        determineType = random()
+        if determineType < lowercaseNoPunctuationUserProbability:
+            userTypes[nick] = lowercaseNoPunctuationID
+        elif determineType < standardUserProbability:
+            userTypes[nick] = standardID
+        elif determineType < lowercaseUserProbability:
+            userTypes[nick] = lowercaseID
+        elif determineType < uppercaseUserProbability:
+            userTypes[nick] = uppercaseID
+        elif determineType < noPunctuationUserProbability:
+            userTypes[nick] = noPunctuationID
+        elif determineType < txtSpeechUserProbability:
+            userTypes[nick] = txtSpeechID
 
     # sums of activity numbers for weighted choice
     global activityTotal
@@ -225,7 +265,7 @@ def incrementLine():
 
 def writeReason():
     # generates a reason
-    writeSentence(reasonsDict, reasonsStartList)
+    writeSentence(reasonsDict, reasonsStartList, standardID)
 
 def getUser():
     return "users@will.be.implemented.later"
@@ -357,22 +397,22 @@ def kickEvent():
     # make sure some amount of peeps are online or offline
     checkPopulation()
 
-def writeSentence(d, li):
+def writeSentence(d, li, flavourType):
     # generates message from given markov dictionary and start list
     # based on http://pythonadventures.wordpress.com/2014/01/23/generating-pseudo-random-text-using-markov-chains/
     key = choice(li)
 
     first, second = key
-    lf.write(first)
+    writeWithFlavour(first, flavourType)
     lf.write(' ')
-    lf.write(second)
+    writeWithFlavour(second, flavourType)
     lf.write(' ')
     while True:
         try:
             third = choice(d[key])
         except KeyError:
             break
-        lf.write(third)
+        writeWithFlavour(third, flavourType)
         if third[-1] in EOS:
             break
         lf.write(' ')
@@ -384,7 +424,7 @@ def writeMessage(nick):
     lf.write(" <")
     lf.write(nick)
     lf.write("> ")
-    writeSentence(messageDict, startList)
+    writeSentence(messageDict, startList, userTypes[nick])
     lf.write("\n")
 
     incrementLine()
