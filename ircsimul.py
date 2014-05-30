@@ -51,7 +51,7 @@ from random import uniform
 
 # logging.basicConfig(filename='debug.log', level=logging.DEBUG)
 
-# flags and sizes, set by user
+# START flags and sizes
 # TODO: Make some of them command line arguments?
 lineMax = 200000
 logfileName = 'ircsimul.log'
@@ -63,7 +63,9 @@ minNickLenght = 6
 minOnline = 5
 minOffline = 5
 initialPopulation = 10
-logInitialPopulation = False
+logInitialPopulation = True
+
+lowercaseNickProbability = 0.5
 
 # cumulative, so actionProbability is 0.01 in reality
 kickProbability = 0.002
@@ -72,6 +74,8 @@ joinPartProbability = 0.05
 
 # possibility that a user quits instead of just leaving
 quitProbability = 0.75
+
+# END flags and sizes
 
 # TODO: create a function that simulates this behavior with fluid numbers after being given a general activity.
 # TODO: tweak activity: currently 1,000,000 lines go from May 29 2014 to Apr 05 2023
@@ -117,7 +121,6 @@ def buildDict(words):
 
 def buildStartlist(dictionary):
     # generates possible line starts (if the first letter is uppercase here)
-    # TODO: find better start list characteristic (e.g. follows an EOS character)
     return [key for key in dictionary.keys() if key[0][0].isupper()]
 
 def makeTransMaps():
@@ -145,6 +148,8 @@ def writeTxtSpeech(text):
     lf.write(text.translate(noVocalMap))
 
 def loadMessages():
+    # loads up message dictionary and start list
+    # read words from file and generate markov dictionary
     sourceFile = open(sourcefileName, 'rt')
     text = sourceFile.read()
     words = text.split()
@@ -158,6 +163,7 @@ def loadMessages():
 
 def loadReasons():
     # loads up reasons dictionary and start list
+    # read words from file and generate markov dictionary
     reasonsFile = open(reasonsfileName, 'rt')
     text = reasonsFile.read()
     words = text.split()
@@ -172,7 +178,6 @@ def loadReasons():
 def loadNicks():
     # load nicks from startList items, as they all have a uppercase starting letter
     # depends on startList already being generated
-    # TODO: make some of them lowercase, remove any punctuation
     startListLenght = len(startList)
 
     global nicks
@@ -183,7 +188,11 @@ def loadNicks():
         # make sure nick isn't in nicks and of some lenght
         while (nick in nicks) or (len(nick) < minNickLenght):
             nick = startList[randint(0, startListLenght - 1)][0]
-        nicks.append(nick)
+        # remove punctuation from nick, make some of them lowercase
+        if random() < lowercaseNickProbability:
+            nicks.append(nick.translate(removePunctuationMap).lower())
+        else:
+            nicks.append(nick.translate(removePunctuationMap))
 
     global activity
     activity = {}
@@ -257,7 +266,6 @@ def populateChannel():
 def selectNick():
     return weightedChoiceWithTotal(nicks, activity, activityTotal)
 
-# TODO: optimize so that total probability is updated during joins/parts, making repeated summing redundant
 def selectOnlineNick():
     return weightedChoiceWithTotal(online, activity, onlineActivityTotal)
 
@@ -372,7 +380,6 @@ def writeSentence(d, li):
         first, second = key
 
 def writeMessage(nick):
-    # TODO: only 79.2% of time are spent writing --> if possible, increase that
     writeTime()
     lf.write(" <")
     lf.write(nick)
@@ -393,6 +400,9 @@ def userAction():
     incrementLine()
 
 def main():
+    # create character maps for various text processing/writing functions
+    makeTransMaps()
+
     # generate message dictionary and line start list
     loadMessages()
 
