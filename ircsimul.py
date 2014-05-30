@@ -9,7 +9,12 @@ from random import random
 from random import randint
 from random import uniform
 
+# TODO: (complete) refactor:
+# TODO: create user class
+# TODO: less globals though objects
+# TODO: less ravioli code
 # TODO: instead of/additionally to truncating lines at commas, spread message out over seperate messages
+# might be cool: having them ping each other in "conversations" where only the last N messages of the person they are pinging are used in the markov generator so the conversation is "topical"
 
 # new features:
 # TODO: user adresses (e.g. water@like.from.the.toilet) (must be bound to nick and kept through nickchange)
