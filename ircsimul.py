@@ -9,10 +9,9 @@ from random import random
 from random import randint
 from random import uniform
 
-# TODO: find alternative to/optimize repeated choices, e.g. cache list lenghts? choice() runs 37.5% of the time
-# TODO: faster version to fill in the zero (instead of zfill?)
+# TODO: find alternative to/optimize repeated choices, e.g. cache list lenghts? choice() runs 23.7% of the time
+# TODO: faster version to fill in the zero (instead of zfill?) (might not be necessary)
 # TODO: instead of/additionally to truncating lines at commas, spread message out over seperate messages
-# TODO: generate nicknames from proper nouns in text
 
 # new features:
 # TODO: user adresses (e.g. water@like.from.the.toilet) (must be bound to nick and kept through nickchange)
@@ -145,12 +144,37 @@ def writeLowercaseWithoutPunctuation(text):
 def writeTxtSpeech(text):
     lf.write(text.translate(noVocalMap))
 
-def loadNicks():
-    # loads possible nicks from file
-    # depends on startList already being generated
+def loadMessages():
+    sourceFile = open(sourcefileName, 'rt')
+    text = sourceFile.read()
+    words = text.split()
+    global messageDict
+    messageDict = buildDict(words)
 
+    # generate list of possible line starts
+    global startList
+    startList = buildStartlist(messageDict)
+    sourceFile.close()
+
+def loadReasons():
+    # loads up reasons dictionary and start list
+    reasonsFile = open(reasonsfileName, 'rt')
+    text = reasonsFile.read()
+    words = text.split()
+    global reasonsDict
+    reasonsDict = buildDict(words)
+
+    # generate list of possible line starts
+    global reasonsStartList
+    reasonsStartList = buildStartlist(reasonsDict)
+    reasonsFile.close()
+
+def loadNicks():
     # load nicks from startList items, as they all have a uppercase starting letter
+    # depends on startList already being generated
     # TODO: make some of them lowercase, remove any punctuation
+    startListLenght = len(startList)
+
     global nicks
     nicks = []
     for i in range(0, userCount):
@@ -181,17 +205,6 @@ def loadNicks():
     offlineActivityTotal = activityTotal
     global onlineActivityTotal
     onlineActivityTotal = 0
-
-def loadReasons():
-    # loads up reasons dictionary and start list
-    reasonsFile = open(reasonsfileName, 'rt')
-    text = reasonsFile.read()
-    words = text.split()
-    global reasonsDict
-    reasonsDict = buildDict(words)
-    global reasonsStartList
-    reasonsStartList = buildStartlist(reasonsDict)
-    reasonsFile.close()
 
 def incrementLine():
     global totalLines
@@ -380,19 +393,8 @@ def userAction():
     incrementLine()
 
 def main():
-    # generate dictionary
-    sourceFile = open(sourcefileName, 'rt')
-    text = sourceFile.read()
-    sourceFile.close()
-    words = text.split()
-    global messageDict
-    messageDict = buildDict(words)
-
-    # generate list of possible line starts
-    global startList
-    startList = buildStartlist(messageDict)
-    global startListLenght
-    startListLenght = len(startList)
+    # generate message dictionary and line start list
+    loadMessages()
 
     # load possible nicknames
     loadNicks()
