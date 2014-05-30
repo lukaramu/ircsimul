@@ -9,14 +9,12 @@ from random import random
 from random import randint
 from random import uniform
 
-# TODO: find alternative to/optimize repeated choices, e.g. cache list lenghts? choice() runs 23.7% of the time
-# TODO: faster version to fill in the zero (instead of zfill?) (might not be necessary)
 # TODO: instead of/additionally to truncating lines at commas, spread message out over seperate messages
 
 # new features:
 # TODO: user adresses (e.g. water@like.from.the.toilet) (must be bound to nick and kept through nickchange)
 # TODO: nick changes
-# TODO: channel modes
+# TODO: channel modes (o and b)
 # TODO: topics
 # TODO: bans
 # TODO: notices
@@ -29,7 +27,7 @@ from random import uniform
 # TODO: extract pprinted metadata
 
 # TODO: different nicks, different behaviour (longshot):
-# average word count
+# average word count (if possible)
 # average word length (if possible)
 # multiple exclamation marks !!!!!!!!!!!!!!
 # times dumbfounded (???)
@@ -60,6 +58,12 @@ minOnline = 5
 minOffline = 5
 initialPopulation = 10
 logInitialPopulation = True
+
+# user/host source files:
+userfileName = 'users.txt'
+prefixfileName = 'adjectives.txt'
+nounfileName = 'nouns.txt'
+placesfileName = 'places.txt'
 
 lowercaseNickProbability = 0.5
 
@@ -101,7 +105,7 @@ useTxtSpeech = 0.5
 # TODO: create a function that simulates this behavior with fluid numbers after being given a general activity.
 # TODO: tweak activity: currently 1,000,000 lines go from May 29 2014 to Apr 05 2023
 # possible timedeltas after messages
-timeSpan = [5, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 10, 10, 10, 10, 12, 15, 20, 30, 30, 30, 20, 60, 120, 300, 600, 1200, 2400, 2400]
+timeSpan = [5, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 10, 10, 10, 10, 12, 15, 20, 30, 30, 30, 20, 60, 120, 300, 600, 1200, 2400]
 
 # abbreviations of weekdays and months
 days = ['Mon ', 'Tue ', 'Wed ', 'Thu ', 'Fri ', 'Sat ', 'Sun ']
@@ -255,6 +259,45 @@ def loadNicks():
     global onlineActivityTotal
     onlineActivityTotal = 0
 
+def assignUserAndHost():
+    userFile = open(userfileName, 'r')
+    userList = userFile.read().split()
+    userFile.close()
+    prefixFile = open(prefixfileName, 'r')
+    prefixList = prefixFile.read().split()
+    prefixFile.close()
+    nounFile = open(nounfileName, 'r')
+    nounList = nounFile.read().split()
+    nounFile.close()
+    placesFile = open(placesfileName, 'r')
+    placesList = placesFile.read().split()
+    placesFile.close()
+
+    global users
+    users = {}
+    for nick in nicks:
+        # TODO: Maybe reduce redundancy
+        strList = []
+        strList.append(choice(userList))
+        strList.append("@")
+        strList.append(choice(prefixList))
+        strList.append(".")
+        strList.append(choice(nounList))
+        strList.append(".from.")
+        strList.append(choice(placesList))
+        user = ''.join(strList)
+        while user in users.values():
+            strList = []
+            strList.append(choice(userList))
+            strList.append("@")
+            strList.append(choice(prefixList))
+            strList.append(".")
+            strList.append(choice(nounList))
+            strList.append(".from.")
+            strList.append(choice(placesList))
+            user = ''.join(strList)
+        users[nick] = user
+
 def incrementLine():
     global totalLines
     totalLines += 1
@@ -266,9 +309,6 @@ def incrementLine():
 def writeReason():
     # generates a reason
     writeSentence(reasonsDict, reasonsStartList, standardID)
-
-def getUser():
-    return "users@will.be.implemented.later"
 
 def setOnline(nick):
     if nick in offline:
@@ -323,7 +363,7 @@ def writeLeaveOrQuit(nick, isQuit):
     lf.write(" -!- ")
     lf.write(nick)
     lf.write(" [")
-    lf.write(getUser())
+    lf.write(users[nick])
     lf.write("]")
     if isQuit:
         lf.write(" has quit [")
@@ -344,7 +384,7 @@ def writeJoin(nick):
     lf.write(" -!- ")
     lf.write(nick)
     lf.write(" [")
-    lf.write(getUser())
+    lf.write(users[nick])
     lf.write("]")
     lf.write(" has joined #")
     lf.write(channelName)
@@ -421,7 +461,8 @@ def writeSentence(d, li, flavourType):
 
 def writeMessage(nick):
     writeTime()
-    lf.write(" <")
+    lf.write(" < ")
+    # TODO: OP/Half-OP/Voice symbols
     lf.write(nick)
     lf.write("> ")
     writeSentence(messageDict, startList, userTypes[nick])
@@ -451,6 +492,9 @@ def main():
 
     # load up reasons
     loadReasons()
+
+    # assign user and hosts
+    assignUserAndHost()
 
     # get current date
     global date
