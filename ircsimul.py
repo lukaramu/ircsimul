@@ -1,6 +1,7 @@
 import datetime
 import logging
 import cProfile
+import string
 from math import sin
 from math import pi
 from random import choice
@@ -22,6 +23,7 @@ from random import uniform
 # TODO: notices
 # TODO: mentions
 # TODO: urls
+# TODO: log metadata (user activity & preferences)
 
 # TODO: make them say hi sometimes?
 # TODO: make kicks have an internal reason
@@ -55,10 +57,10 @@ from random import uniform
 lineMax = 200000
 logfileName = 'ircsimul.log'
 sourcefileName = 'ZARATHUSTRA.txt'
-nickfileName = 'nicks.txt'
 reasonsfileName = 'reasons.txt'
 channelName = 'channel'
-userCount = 40                      # still unused
+userCount = 40
+minNickLenght = 6
 minOnline = 5
 minOffline = 5
 initialPopulation = 10
@@ -119,14 +121,46 @@ def buildStartlist(dictionary):
     # TODO: find better start list characteristic (e.g. follows an EOS character)
     return [key for key in dictionary.keys() if key[0][0].isupper()]
 
+def makeTransMaps():
+    # creates translation maps for the various write functions
+    global removePunctuationMap
+    removePunctuationMap = str.maketrans('', '', string.punctuation)
+    global removePunctuationAndUpperCaseMap
+    removePunctuationAndUpperCaseMap = str.maketrans(string.ascii_uppercase, string.ascii_lowercase, string.punctuation)
+    global noVocalMap
+    noVocalMap = str.maketrans('', '', 'aeiou')
+
+def writeLowercase(text):
+    lf.write(text.lower())
+
+def writeAllCaps(text):
+    lf.write(text.upper())
+
+def writeWithoutPunctuation(text):
+    lf.write(text.translate(removePunctuationMap))
+
+def writeLowercaseWithoutPunctuation(text):
+    lf.write(text.translate(removePunctuationAndUpperCaseMap))
+
+def writeTxtSpeech(text):
+    lf.write(text.translate(noVocalMap))
+
 def loadNicks():
     # loads possible nicks from file
-    nickFile = open(nickfileName, 'r')
+    # depends on startList already being generated
+
+    # load nicks from startList items, as they all have a uppercase starting letter
+    # TODO: make some of them lowercase, remove any punctuation
     global nicks
-    nicks = nickFile.read().split()
-    nickFile.close()
-    global nickNumber
-    nickNumber = len(nicks)
+    nicks = []
+    for i in range(0, userCount):
+        nick = startList[randint(0, startListLenght - 1)][0]
+
+        # make sure nick isn't in nicks and of some lenght
+        while (nick in nicks) or (len(nick) < minNickLenght):
+            nick = startList[randint(0, startListLenght - 1)][0]
+        nicks.append(nick)
+
     global activity
     activity = {}
     global online
@@ -144,7 +178,7 @@ def loadNicks():
     global activityTotal
     activityTotal = sum(activity[nick] for nick in nicks)
     global offlineActivityTotal
-    offlineActivityTotal = 0
+    offlineActivityTotal = activityTotal
     global onlineActivityTotal
     onlineActivityTotal = 0
 
@@ -263,7 +297,7 @@ def checkPopulation():
     # makes sure some amount of peeps are online or offline
     while onlineNicks <= minOnline:
         writeJoin(selectOfflineNick())
-    while (nickNumber - onlineNicks) <= minOffline:
+    while (userCount - onlineNicks) <= minOffline:
         writeLeaveOrQuit(selectOnlineNick(), random() < quitProbability)
 
 def joinPartEvent():
@@ -303,7 +337,7 @@ def kickEvent():
     checkPopulation()
 
 def writeSentence(d, li):
-    # generates message from given markov dictionary
+    # generates message from given markov dictionary and start list
     # based on http://pythonadventures.wordpress.com/2014/01/23/generating-pseudo-random-text-using-markov-chains/
     key = choice(li)
 
@@ -357,6 +391,8 @@ def main():
     # generate list of possible line starts
     global startList
     startList = buildStartlist(messageDict)
+    global startListLenght
+    startListLenght = len(startList)
 
     # load possible nicknames
     loadNicks()
