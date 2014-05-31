@@ -124,11 +124,11 @@ months = ['Jan ', 'Feb ', 'Mar ', 'Apr ', 'May ', 'Jun ', 'Jul ', 'Aug ', 'Sep '
 # add ':', ',' for shorter messages?
 EOS = ['.', '?', '!', ':', '"', ':', ',', ';']
 
-def weightedUserChoice(users, weights, total):
+def selectUserByActivity(users, total):
     r = uniform(0, total)
     upto = 0
     for user in users:
-        upto += weights[user.ID]
+        upto += user.activity
         if r <= upto:
             return user
 
@@ -364,13 +364,13 @@ def setOffline(user):
         onlineUsers -= 1
 
 def selectUser():
-    return weightedUserChoice(users, [user.activity for user in users], activityTotal)
+    return selectUserByActivity(users, activityTotal)
 
 def selectOnlineUser():
-    return weightedUserChoice(online, [user.activity for user in users], onlineActivityTotal)
+    return selectUserByActivity(online, onlineActivityTotal)
 
 def selectOfflineUser():
-    return weightedUserChoice(offline, [user.activity for user in users], offlineActivityTotal)
+    return selectUserByActivity(offline, offlineActivityTotal)
 
 def writeTime():
     lf.write(str(date.hour).zfill(2))
