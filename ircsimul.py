@@ -9,15 +9,17 @@ from random import random
 from random import randint
 from random import uniform
 
+from user import User
+
+# TODO: check if activity is still correct
 # TODO: (complete) refactor:
-# TODO: create user class
 # TODO: less globals though objects
-# TODO: less ravioli code
+# TODO: spread out stuff over multiple files
 # TODO: instead of/additionally to truncating lines at commas, spread message out over seperate messages
+# TODO: ovent based lines: http://pastebin.com/Nw854kcf
 # might be cool: having them ping each other in "conversations" where only the last N messages of the person they are pinging are used in the markov generator so the conversation is "topical"
 
 # new features:
-# TODO: user adresses (e.g. water@like.from.the.toilet) (must be bound to nick and kept through nickchange)
 # TODO: nick changes
 # TODO: channel modes (o and b)
 # TODO: topics
@@ -57,7 +59,8 @@ logfileName = 'ircsimul.log'
 sourcefileName = 'ZARATHUSTRA.txt'
 reasonsfileName = 'reasons.txt'
 channelName = 'channel'
-userCount = 40
+userCount = 40                  # make sure this is less than the number of names in userfileName
+nicksPerUser = 3
 minNickLenght = 6
 minOnline = 5
 minOffline = 5
@@ -90,6 +93,7 @@ noPunctuationUserProbability = 0.05 + uppercaseUserProbability              # ty
 txtSpeechUserProbability = 0.08 + noPunctuationUserProbability              # type 5
 
 # user type IDs
+# TODO: make this an enum
 lowercaseNoPunctuationID = 0
 standardID = 1
 lowercaseID = 2
@@ -120,19 +124,13 @@ months = ['Jan ', 'Feb ', 'Mar ', 'Apr ', 'May ', 'Jun ', 'Jul ', 'Aug ', 'Sep '
 # add ':', ',' for shorter messages?
 EOS = ['.', '?', '!', ':', '"', ':', ',', ';']
 
-def weightedChoice(choice, weights):
-    total = 0
-    for c in choices:
-        total += weights[c]
-    return weightedChoiceWithTotal(choice, weights, total)
-
-def weightedChoiceWithTotal(choices, weights, total):
+def weightedUserChoice(users, weights, total):
     r = uniform(0, total)
     upto = 0
-    for c in choices:
-        upto += weights[c]
+    for user in users:
+        upto += weights[user.ID]
         if r <= upto:
-            return c
+            return user
 
 def buildDict(words):
     # builds morkov dictionary from given words
@@ -205,103 +203,129 @@ def loadReasons():
     reasonsStartList = buildStartlist(reasonsDict)
     reasonsFile.close()
 
-def loadNicks():
+# TODO: make it possible to create additional users later?
+def loadUsers():
     # load nicks from startList items, as they all have a uppercase starting letter
     # depends on startList already being generated
     startListLenght = len(startList)
 
-    global nicks
+    global users
+    users = []
+
     nicks = []
-    for i in range(0, userCount):
-        nick = startList[randint(0, startListLenght - 1)][0]
+    # generate list of possible nicks
+    for i in range(0, userCount*nicksPerUser):
+        # choose nick from list of possible starting words, remove punctuation from nick
+        nick = startList[randint(0, startListLenght - 1)][0].translate(removePunctuationMap)
 
         # make sure nick isn't in nicks and of some lenght
-        # TODO: make comparison ignore case
-        while (nick in nicks) or (len(nick) < minNickLenght):
-            nick = startList[randint(0, startListLenght - 1)][0]
-        # remove punctuation from nick, make some of them lowercase
+        while (nick.lower() in [nick.lower() for nick in nicks]) or (len(nick) < minNickLenght):
+            nick = startList[randint(0, startListLenght - 1)][0].translate(removePunctuationMap)
+
+        # make some of them lowercase
         if random() < lowercaseNickProbability:
-            nicks.append(nick.translate(removePunctuationMap).lower())
+            nick = nick.lower()
         else:
-            nicks.append(nick.translate(removePunctuationMap))
+            pass
+        nicks.append(nick)
 
-    global activity
-    activity = {}
-    global online
-    online = []
-    global offline
-    offline = []
-    global onlineNicks
-    onlineNicks = 0
-    global userTypes
-    userTypes = {}
-    for nick in nicks:
-        # TODO: find better activity distribution
-        activity[nick] = (sin(random() * pi) + 1) / 2
-        offline.append(nick)
-
-        # choose user type
-        # TODO: make this not messy
-        determineType = random()
-        if determineType < lowercaseNoPunctuationUserProbability:
-            userTypes[nick] = lowercaseNoPunctuationID
-        elif determineType < standardUserProbability:
-            userTypes[nick] = standardID
-        elif determineType < lowercaseUserProbability:
-            userTypes[nick] = lowercaseID
-        elif determineType < uppercaseUserProbability:
-            userTypes[nick] = uppercaseID
-        elif determineType < noPunctuationUserProbability:
-            userTypes[nick] = noPunctuationID
-        elif determineType < txtSpeechUserProbability:
-            userTypes[nick] = txtSpeechID
-
-    # sums of activity numbers for weighted choice
-    global activityTotal
-    activityTotal = sum(activity[nick] for nick in nicks)
-    global offlineActivityTotal
-    offlineActivityTotal = activityTotal
-    global onlineActivityTotal
-    onlineActivityTotal = 0
-
-def assignUserAndHost():
+    # load lists for username and hostmask generation
+    # load possible user names
     userFile = open(userfileName, 'r')
     userList = userFile.read().split()
     userFile.close()
+    # load possible 'prefixes'
     prefixFile = open(prefixfileName, 'r')
     prefixList = prefixFile.read().split()
     prefixFile.close()
+    # load possible nouns
     nounFile = open(nounfileName, 'r')
     nounList = nounFile.read().split()
     nounFile.close()
+    # load possible places
     placesFile = open(placesfileName, 'r')
     placesList = placesFile.read().split()
     placesFile.close()
 
-    global users
-    users = {}
-    for nick in nicks:
-        # TODO: Maybe reduce redundancy
+    # lists used to prevent the same username/hostmask appearing twice
+    userNames = []
+    hostmasks = []
+
+    # TODO: find better solution???
+    global offline
+    offline = []
+    global online
+    online = []
+
+    #choose values for each user, create user and append to users
+    for i in range(0, userCount):
+        # choose username
+        userName = choice(userList)
+        while userName in userNames:
+            userName = choice(userList)
+        userNames.append(userName)
+
+        # choose hostmask
+        # TODO: Maybe reduce redundancy through a function
         strList = []
-        strList.append(choice(userList))
-        strList.append("@")
         strList.append(choice(prefixList))
         strList.append(".")
         strList.append(choice(nounList))
         strList.append(".from.")
         strList.append(choice(placesList))
-        user = ''.join(strList)
-        while user in users.values():
+        hostmask = ''.join(strList)
+        while hostmask in hostmasks:
             strList = []
-            strList.append(choice(userList))
-            strList.append("@")
             strList.append(choice(prefixList))
             strList.append(".")
             strList.append(choice(nounList))
             strList.append(".from.")
             strList.append(choice(placesList))
-            user = ''.join(strList)
-        users[nick] = user
+            hostmask = ''.join(strList)
+        hostmasks.append(hostmask)
+
+        # create list of possible nicks for user from list of overall possible nicks
+        userNicks = []
+        for j in range(0, nicksPerUser):
+            userNicks.append(nicks.pop())
+
+        # choose user type
+        # TODO: beautify (i.e. create a function for this type of selection? only if faster)
+        # TODO: change when IDs are enum
+        determineType = random()
+        if determineType < lowercaseNoPunctuationUserProbability:
+            userType = lowercaseNoPunctuationID
+        elif determineType < standardUserProbability:
+            userType = standardID
+        elif determineType < lowercaseUserProbability:
+            userType = lowercaseID
+        elif determineType < uppercaseUserProbability:
+            userType = uppercaseID
+        elif determineType < noPunctuationUserProbability:
+            userType = noPunctuationID
+        elif determineType < txtSpeechUserProbability:
+            userType = txtSpeechID
+
+        # choose activity level
+        # TODO: find better activity distribution
+        activity = (sin(random() * pi) + 1) / 2
+
+        # create User object, append to global user list
+        # user is initially offline
+        user = User(i, userName, hostmask, userNicks, userType, activity, False)
+        users.append(user)
+        offline.append(user)
+
+    global onlineUsers
+    onlineUsers = 0
+
+    # sums of activity numbers for weighted choice
+    global activityTotal
+    activityTotal = sum(user.activity for user in users)
+    global offlineActivityTotal
+    offlineActivityTotal = activityTotal
+    global onlineActivityTotal
+    onlineActivityTotal = 0
 
 def incrementLine():
     global totalLines
@@ -315,60 +339,52 @@ def writeReason():
     # generates a reason
     writeSentence(reasonsDict, reasonsStartList, standardID)
 
-def setOnline(nick):
-    if nick in offline:
-        online.append(nick)
-        offline.remove(nick)
+def setOnline(user):
+    if user in offline:
+        online.append(user)
+        offline.remove(user)
 
         global onlineActivityTotal
         global offlineActivityTotal
-        onlineActivityTotal += activity[nick]
-        offlineActivityTotal -= activity[nick]
-        global onlineNicks
-        onlineNicks += 1
+        onlineActivityTotal += user.activity
+        offlineActivityTotal -= user.activity
+        global onlineUsers
+        onlineUsers += 1
 
-def setOffline(nick):
-    if nick in online:
-        online.remove(nick)
-        offline.append(nick)
+def setOffline(user):
+    if user in online:
+        online.remove(user)
+        offline.append(user)
 
         global onlineActivityTotal
         global offlineActivityTotal
-        onlineActivityTotal -= activity[nick]
-        offlineActivityTotal += activity[nick]
-        global onlineNicks
-        onlineNicks -= 1
+        onlineActivityTotal -= user.activity
+        offlineActivityTotal += user.activity
+        global onlineUsers
+        onlineUsers -= 1
 
-def populateChannel():
-    # populates channel with initialPopulation users
-    if logInitialPopulation:
-        while onlineNicks < initialPopulation:
-            writeJoin(selectOfflineNick())
-    else:
-        while onlineNicks < initialPopulation:
-            setOnline(selectOfflineNick())
+def selectUser():
+    return weightedUserChoice(users, [user.activity for user in users], activityTotal)
 
-def selectNick():
-    return weightedChoiceWithTotal(nicks, activity, activityTotal)
+def selectOnlineUser():
+    return weightedUserChoice(online, [user.activity for user in users], onlineActivityTotal)
 
-def selectOnlineNick():
-    return weightedChoiceWithTotal(online, activity, onlineActivityTotal)
-
-def selectOfflineNick():
-    return weightedChoiceWithTotal(offline, activity, offlineActivityTotal)
+def selectOfflineUser():
+    return weightedUserChoice(offline, [user.activity for user in users], offlineActivityTotal)
 
 def writeTime():
     lf.write(str(date.hour).zfill(2))
     lf.write(":")
     lf.write(str(date.minute).zfill(2))
 
-def writeLeaveOrQuit(nick, isQuit):
+# TODO: consolidate the following two functions to decrease redundancy
+def writeLeaveOrQuit(user, isQuit):
     # writes leave or quit message to log
     writeTime()
     lf.write(" -!- ")
-    lf.write(nick)
+    lf.write(user.nick)
     lf.write(" [")
-    lf.write(users[nick])
+    lf.write(user.combinedUserAndHost)
     lf.write("]")
     if isQuit:
         lf.write(" has quit [")
@@ -379,58 +395,67 @@ def writeLeaveOrQuit(nick, isQuit):
     writeReason()
     lf.write("]\n")
 
-    setOffline(nick)
+    setOffline(user)
 
     incrementLine()
 
-def writeJoin(nick):
+def writeJoin(user):
     # writes join message to log
     writeTime()
     lf.write(" -!- ")
-    lf.write(nick)
+    lf.write(user.nick)
     lf.write(" [")
-    lf.write(users[nick])
+    lf.write(user.combinedUserAndHost)
     lf.write("]")
     lf.write(" has joined #")
     lf.write(channelName)
     lf.write("\n")
 
-    setOnline(nick)
+    setOnline(user)
 
     incrementLine()
 
+def populateChannel():
+    # populates channel with initialPopulation users
+    if logInitialPopulation:
+        while onlineUsers < initialPopulation:
+            writeJoin(selectOfflineUser())
+    else:
+        while onlineUsers < initialPopulation:
+            setOnline(selectOfflineUser())
+
 def checkPopulation():
     # makes sure some amount of peeps are online or offline
-    while onlineNicks <= minOnline:
-        writeJoin(selectOfflineNick())
-    while (userCount - onlineNicks) <= minOffline:
-        writeLeaveOrQuit(selectOnlineNick(), random() < quitProbability)
+    while onlineUsers <= minOnline:
+        writeJoin(selectOfflineUser())
+    while (userCount - onlineUsers) <= minOffline:
+        writeLeaveOrQuit(selectOnlineUser(), random() < quitProbability)
 
 def joinPartEvent():
     # make sure someone is online at all times, or create a fallback
-    nick = selectNick()
-    if nick in online:
-        writeLeaveOrQuit(nick, random() < quitProbability)
+    user = selectUser()
+    if user in online:
+        writeLeaveOrQuit(user, random() < quitProbability)
     else:
-        writeJoin(nick)
+        writeJoin(user)
 
     # make sure some amount of peeps are online or offline
     checkPopulation()
 
 def kickEvent():
     # kicks some user
-    kickee = selectOnlineNick()
-    kicker = selectOnlineNick()
+    kickee = selectOnlineUser()
+    kicker = selectOnlineUser()
     while kicker == kickee:
-        kicker = selectOnlineNick()
+        kicker = selectOnlineUser()
 
     writeTime()
     lf.write(" -!- ")
-    lf.write(kickee)
+    lf.write(kickee.nick)
     lf.write(" was kicked from #")
     lf.write(channelName)
     lf.write(" by ")
-    lf.write(kicker)
+    lf.write(kicker.nick)
     lf.write(" [")
     writeReason()
     lf.write("]\n")
@@ -464,13 +489,13 @@ def writeSentence(d, li, flavourType):
         key = (second, third)
         first, second = key
 
-def writeMessage(nick):
+def writeMessage(user):
     writeTime()
     lf.write(" < ")
     # TODO: OP/Half-OP/Voice symbols
-    lf.write(nick)
+    lf.write(user.nick)
     lf.write("> ")
-    writeSentence(messageDict, startList, userTypes[nick])
+    writeSentence(messageDict, startList, user.userType)
     lf.write("\n")
 
     incrementLine()
@@ -478,7 +503,7 @@ def writeMessage(nick):
 def userAction():
     writeTime()
     lf.write("  * ")
-    lf.write(selectOnlineNick())
+    lf.write(selectOnlineUser().nick)
 
     # TODO: implement variable user action text (best with leading space)
     lf.write(" does action\n")
@@ -492,14 +517,11 @@ def main():
     # generate message dictionary and line start list
     loadMessages()
 
-    # load possible nicknames
-    loadNicks()
+    # load users
+    loadUsers()
 
     # load up reasons
     loadReasons()
-
-    # assign user and hosts
-    assignUserAndHost()
 
     # get current date
     global date
@@ -515,6 +537,7 @@ def main():
     totalLines = 0
 
     # write opening of log
+    # TODO: extract log opening and closing (i.e. full timestamp) to function
     lf.write("--- Log opened " + days[date.weekday()] + months[date.month - 1] + 
         str(date.day).zfill(2) + " " + str(date.hour).zfill(2) + ":" + str(date.minute).zfill(2) + 
         ":" + str(date.second).zfill(2) + " " + str(date.year) + "\n")
@@ -534,11 +557,10 @@ def main():
             incrementLine()
 
         # generate line
-        # TODO: make this choice with weightedChoice() and exec()
         determineType = random()
         if determineType > joinPartProbability:
             # user message
-            writeMessage(selectOnlineNick())
+            writeMessage(selectOnlineUser())
         elif determineType > actionProbability:
             # random join/part event
             joinPartEvent()
