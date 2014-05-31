@@ -76,6 +76,7 @@ placesfileName = 'places.txt'
 lowercaseNickProbability = 0.5
 
 # possibility that a user quits instead of just leaving
+# TODO: make consistent among user
 quitProbability = 0.75
 
 # cumulative, so actionProbability is 0.008 in reality
@@ -203,6 +204,15 @@ def loadReasons():
     reasonsStartList = buildStartlist(reasonsDict)
     reasonsFile.close()
 
+def _joinHostmask(prefix, noun, place):
+    # helper function for hostmask creation
+    strList = []
+    strList.append(prefix)
+    strList.append(noun)
+    strList.append("from")
+    strList.append(place)
+    return '.'.join(strList)
+
 # TODO: make it possible to create additional users later?
 def loadUsers():
     # load nicks from startList items, as they all have a uppercase starting letter
@@ -257,7 +267,7 @@ def loadUsers():
     global online
     online = []
 
-    #choose values for each user, create user and append to users
+    # choose values for each user, create user and append to users
     for i in range(0, userCount):
         # choose username
         userName = choice(userList)
@@ -266,22 +276,9 @@ def loadUsers():
         userNames.append(userName)
 
         # choose hostmask
-        # TODO: Maybe reduce redundancy through a function
-        strList = []
-        strList.append(choice(prefixList))
-        strList.append(".")
-        strList.append(choice(nounList))
-        strList.append(".from.")
-        strList.append(choice(placesList))
-        hostmask = ''.join(strList)
+        hostmask = _joinHostmask(choice(prefixList), choice(nounList), choice(placesList))
         while hostmask in hostmasks:
-            strList = []
-            strList.append(choice(prefixList))
-            strList.append(".")
-            strList.append(choice(nounList))
-            strList.append(".from.")
-            strList.append(choice(placesList))
-            hostmask = ''.join(strList)
+            hostmask = _joinHostmask(choice(prefixList), choice(nounList), choice(placesList))
         hostmasks.append(hostmask)
 
         # create list of possible nicks for user from list of overall possible nicks
@@ -377,19 +374,21 @@ def writeTime():
     lf.write(":")
     lf.write(str(date.minute).zfill(2))
 
-# TODO: consolidate the following two functions to decrease redundancy
-def writeLeaveOrQuit(user, isQuit):
-    # writes leave or quit message to log
+def _writeJoinPartQuitBeginning(user):
     writeTime()
     lf.write(" -!- ")
     lf.write(user.nick)
     lf.write(" [")
     lf.write(user.combinedUserAndHost)
-    lf.write("]")
+    lf.write("] has ")
+
+def writeLeaveOrQuit(user, isQuit):
+    # writes leave or quit message to log
+    _writeJoinPartQuitBeginning(user)
     if isQuit:
-        lf.write(" has quit [")
+        lf.write("quit [")
     else:
-        lf.write(" has left #")
+        lf.write("left #")
         lf.write(channelName)
         lf.write(" [")
     writeReason()
@@ -401,13 +400,8 @@ def writeLeaveOrQuit(user, isQuit):
 
 def writeJoin(user):
     # writes join message to log
-    writeTime()
-    lf.write(" -!- ")
-    lf.write(user.nick)
-    lf.write(" [")
-    lf.write(user.combinedUserAndHost)
-    lf.write("]")
-    lf.write(" has joined #")
+    _writeJoinPartQuitBeginning(user)
+    lf.write("joined #")
     lf.write(channelName)
     lf.write("\n")
 
@@ -510,6 +504,20 @@ def userAction():
 
     incrementLine()
 
+def _writeFullTimestamp():
+    # writes full timestamp to log file
+    lf.write(days[date.weekday()])
+    lf.write(months[date.month - 1])
+    lf.write(str(date.day).zfill(2))
+    lf.write(" ")
+    lf.write(str(date.hour).zfill(2))
+    lf.write(":")
+    lf.write(str(date.minute).zfill(2))
+    lf.write(":")
+    lf.write(str(date.second).zfill(2))
+    lf.write(" ")
+    lf.write(str(date.year))
+
 def main():
     # create character maps for various text processing/writing functions
     makeTransMaps()
@@ -537,11 +545,9 @@ def main():
     totalLines = 0
 
     # write opening of log
-    # TODO: extract log opening and closing (i.e. full timestamp) to function
-    lf.write("--- Log opened " + days[date.weekday()] + months[date.month - 1] + 
-        str(date.day).zfill(2) + " " + str(date.hour).zfill(2) + ":" + str(date.minute).zfill(2) + 
-        ":" + str(date.second).zfill(2) + " " + str(date.year) + "\n")
-
+    lf.write("--- Log opened ")
+    _writeFullTimestamp()
+    lf.write("\n")
     incrementLine()
 
     # initial population of channel
@@ -572,9 +578,9 @@ def main():
             kickEvent()
 
     # write log closing message
-    lf.write("--- Log closed " + days[date.weekday()] + months[date.month - 1] + 
-        str(date.day).zfill(2) + " " + str(date.hour).zfill(2) + ":" + str(date.minute).zfill(2) + 
-        ":" + str(date.second).zfill(2) + " " + str(date.year) + "\n")
+    lf.write("--- Log closed ")
+    _writeFullTimestamp()
+    lf.write("\n")
     incrementLine()
 
     # close log file
