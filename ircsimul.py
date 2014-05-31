@@ -12,9 +12,21 @@ from random import uniform
 from markov import MarkovDict
 from user import User
 
-# TODO: check if activity is still correct
-# TODO: (complete) refactor:
-# TODO: less globals though objects
+# event roadmap (will also nearly obliterate globals):
+# move stuff to markov.py
+# (optional) move stuff to helper.py
+# create channel class
+# create writer class
+# move loadUsers to users.py to eventually later have user creation on the fly
+# create event class
+# create event subclasses
+# implement event printing in writer
+# move current system to be event-based
+# implement per-user event creation (e.g.)
+# implement event handling in event class (i.e. writing etc)
+# migrate saduidghfbsdhgdsgbisfoigbsdnfgfdsg
+
+# TODO: check if activity is correct
 # TODO: spread out stuff over multiple files
 # TODO: instead of/additionally to truncating lines at commas, spread message out over seperate messages
 # TODO: event based system: http://pastebin.com/Nw854kcf
@@ -55,7 +67,7 @@ from user import User
 
 # START flags and sizes
 # TODO: Make some of them command line arguments?
-lineMax = 50000
+lineMax = 200000
 logfileName = 'ircsimul.log'
 sourcefileName = 'ZARATHUSTRA.txt'
 reasonsfileName = 'reasons.txt'
@@ -119,13 +131,14 @@ useTxtSpeech = 0.5
 timeSpan = [5, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 10, 10, 10, 10, 12, 15, 20, 30, 30, 30, 20, 60, 120, 300, 600, 1200, 2400]
 
 # abbreviations of weekdays and months
+# TODO: move to writer class later
 days = ['Mon ', 'Tue ', 'Wed ', 'Thu ', 'Fri ', 'Sat ', 'Sun ']
 months = ['Jan ', 'Feb ', 'Mar ', 'Apr ', 'May ', 'Jun ', 'Jul ', 'Aug ', 'Sep ', 'Oct ', 'Nov ', 'Dec ']
 
 # list with symbols that end a sentence
-# add ':', ',' for shorter messages?
 EOS = ['.', '?', '!', ':', '"', ':', ',', ';']
 
+# TODO: remove when obsolete (after events are implemented)
 def selectUserByActivity(users, total):
     r = uniform(0, total)
     upto = 0
@@ -134,6 +147,7 @@ def selectUserByActivity(users, total):
         if r <= upto:
             return user
 
+# TODO: move to writer class later (have it accessible to outside, though)
 def makeTransMaps():
     # creates translation maps for the various write functions
     global removePunctuationMap
@@ -143,6 +157,7 @@ def makeTransMaps():
     global noVocalMap
     noVocalMap = str.maketrans('', '', 'aeiou')
 
+# TODO: move to writer class later
 def writeWithFlavour(text, flavourType):
     # writes to log with 'flavour'
     if flavourType == lowercaseNoPunctuationID:
@@ -158,6 +173,7 @@ def writeWithFlavour(text, flavourType):
     if flavourType == txtSpeechID:
         lf.write(text.translate(noVocalMap))
 
+# TODO: move to helper file?
 def _splitFileToList(filename):
     # split text in file to list of words
     f = open(filename, 'rt')
@@ -165,16 +181,19 @@ def _splitFileToList(filename):
     f.close()
     return splitList
 
+# TODO: move to markov.py?
 def loadDictFromFile(filename):
     # loads up reasons dictionary and start list
     # read words from file and generate markov dictionary
     generatedDict = MarkovDict(_splitFileToList(filename))
     return generatedDict
 
+# TODO: move to users.py with loadUsers?
 def _chooseNick(dictionary, startListLen):
     # returns nick from list of possible starting words removes punctuation from nick
     return dictionary.startList[randint(0, startListLen - 1)][0].translate(removePunctuationMap)
 
+# TODO: move to users.py with loadUsers?
 def _joinHostmask(prefix, noun, place):
     # returns combined hostmask
     strList = []
@@ -185,11 +204,13 @@ def _joinHostmask(prefix, noun, place):
     return '.'.join(strList)
 
 # TODO: make it possible to create additional users later?
+# TODO: move to users.py?
 def loadUsers():
     # load nicks from startList items, as they all have a uppercase starting letter
     # depends on startList already being generated
     startListLen = len(messageDict.startList)
 
+    # TODO: move to channel class later:
     global users
     users = []
 
@@ -220,7 +241,7 @@ def loadUsers():
     userNames = []
     hostmasks = []
 
-    # TODO: find better solution???
+    # TODO: move to channel class later
     global offline
     offline = []
     global online
@@ -272,10 +293,12 @@ def loadUsers():
         users.append(user)
         offline.append(user)
 
+    # TODO: move to channel class later
     global onlineUsers
     onlineUsers = 0
 
     # sums of activity numbers for weighted choice
+    # TODO: move to channel class later (might not be necessary b/c of rework w/ events and such)
     global activityTotal
     activityTotal = sum(user.activity for user in users)
     global offlineActivityTotal
@@ -283,19 +306,24 @@ def loadUsers():
     global onlineActivityTotal
     onlineActivityTotal = 0
 
+# TODO: move to writer class later
 # TODO: make lf.write("\n") part of incrementLine()
 def incrementLine():
+    # TODO: move to writer class later
     global totalLines
     totalLines += 1
 
-    # TODO: better way to handle activity?
+    # TODO: move to main() as local when events are implemented?
+    # TODO: make time independant of line w/ events
     global date
     date = date + datetime.timedelta(seconds = choice(timeSpan) * (sin((date.hour + 12) * pi / 24) + 1.5))
 
+# TODO: move to writer class later
 def writeReason():
     # generates a reason
     writeSentence(reasonsDict, standardID)
 
+# TODO: move to channel class later
 def setOnline(user):
     if user in offline:
         online.append(user)
@@ -308,6 +336,7 @@ def setOnline(user):
         global onlineUsers
         onlineUsers += 1
 
+# TODO: move to channel class later
 def setOffline(user):
     if user in online:
         online.remove(user)
@@ -320,6 +349,7 @@ def setOffline(user):
         global onlineUsers
         onlineUsers -= 1
 
+# TODO: check if still necessary with new event system
 def selectUser():
     return selectUserByActivity(users, activityTotal)
 
@@ -329,11 +359,13 @@ def selectOnlineUser():
 def selectOfflineUser():
     return selectUserByActivity(offline, offlineActivityTotal)
 
+# TODO: move to writer class later
 def writeTime():
     lf.write(str(date.hour).zfill(2))
     lf.write(":")
     lf.write(str(date.minute).zfill(2))
 
+# TODO: move to writer class later
 def _writeJoinPartQuitBeginning(user):
     writeTime()
     lf.write(" -!- ")
@@ -342,6 +374,7 @@ def _writeJoinPartQuitBeginning(user):
     lf.write(user.combinedUserAndHost)
     lf.write("] has ")
 
+# TODO: move to writer class later
 def writeLeaveOrQuit(user, isQuit):
     # writes leave or quit message to log
     _writeJoinPartQuitBeginning(user)
@@ -358,6 +391,7 @@ def writeLeaveOrQuit(user, isQuit):
 
     incrementLine()
 
+# TODO: move to writer class later
 def writeJoin(user):
     # writes join message to log
     _writeJoinPartQuitBeginning(user)
@@ -369,6 +403,7 @@ def writeJoin(user):
 
     incrementLine()
 
+# TODO: move to channel class later
 def populateChannel():
     # populates channel with initialPopulation users
     if logInitialPopulation:
@@ -378,6 +413,7 @@ def populateChannel():
         while onlineUsers < initialPopulation:
             setOnline(selectOfflineUser())
 
+# TODO: move to channel class later
 def checkPopulation():
     # makes sure some amount of peeps are online or offline
     while onlineUsers <= minOnline:
@@ -386,6 +422,7 @@ def checkPopulation():
         writeLeaveOrQuit(selectOnlineUser(), random() < quitProbability)
 
 # TODO: determine join or part in event selection
+# TODO: make subclass of Event
 def joinPartEvent(user):
     if user in online:
         writeLeaveOrQuit(user, random() < quitProbability)
@@ -395,6 +432,8 @@ def joinPartEvent(user):
     # make sure some amount of peeps are online or offline
     checkPopulation()
 
+# TODO: move writing to writer class later
+# TODO: make subclass of Event
 def kickEvent(kickee, kicker):
     writeTime()
     lf.write(" -!- ")
@@ -414,6 +453,7 @@ def kickEvent(kickee, kicker):
     # make sure some amount of peeps are online or offline
     checkPopulation()
 
+# move to markov.py?
 def writeSentence(markovDict, flavourType):
     # generates message from given markov dictionary and start list
     # based on http://pythonadventures.wordpress.com/2014/01/23/generating-pseudo-random-text-using-markov-chains/
@@ -436,6 +476,7 @@ def writeSentence(markovDict, flavourType):
         key = (second, third)
         first, second = key
 
+# TODO: make subclass of Event as messageEvent
 def writeMessage(user):
     writeTime()
     lf.write(" < ")
@@ -447,6 +488,7 @@ def writeMessage(user):
 
     incrementLine()
 
+# TODO: make subclass of Event as userActionEvent
 def userAction(user):
     writeTime()
     lf.write("  * ")
@@ -457,6 +499,7 @@ def userAction(user):
 
     incrementLine()
 
+# TODO: move to writer class later
 def _writeFullTimestamp():
     # writes full timestamp to log file
     lf.write(days[date.weekday()])
@@ -476,6 +519,7 @@ def main():
     makeTransMaps()
 
     # generate message dictionary and line start list
+    # TODO: move to markov.py?
     global messageDict
     messageDict = loadDictFromFile(sourcefileName)
 
@@ -483,19 +527,23 @@ def main():
     loadUsers()
 
     # load up reasons
+    # TODO: move to markov.py?
     global reasonsDict
     reasonsDict = loadDictFromFile(reasonsfileName)
 
     # get current date
+    # TODO: move to channel later??
     global date
     date = datetime.datetime.now()
     daycache = date.day
 
     # open log file
+    # move to writer class later
     global lf
     lf = open(logfileName, 'w')
 
     # number of total lines
+    # move to writer class later
     global totalLines
     totalLines = 0
 
