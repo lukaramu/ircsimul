@@ -9,6 +9,7 @@ from random import random
 from random import randint
 from random import uniform
 
+from markovDict import MarkovDict
 from user import User
 
 # TODO: check if activity is still correct
@@ -16,7 +17,7 @@ from user import User
 # TODO: less globals though objects
 # TODO: spread out stuff over multiple files
 # TODO: instead of/additionally to truncating lines at commas, spread message out over seperate messages
-# TODO: ovent based lines: http://pastebin.com/Nw854kcf
+# TODO: event based system: http://pastebin.com/Nw854kcf
 # might be cool: having them ping each other in "conversations" where only the last N messages of the person they are pinging are used in the markov generator so the conversation is "topical"
 
 # new features:
@@ -76,7 +77,7 @@ placesfileName = 'places.txt'
 lowercaseNickProbability = 0.5
 
 # possibility that a user quits instead of just leaving
-# TODO: make consistent among user
+# TODO: make consistent among user (e.g. User value)
 quitProbability = 0.75
 
 # cumulative, so actionProbability is 0.008 in reality
@@ -133,25 +134,6 @@ def selectUserByActivity(users, total):
         if r <= upto:
             return user
 
-def buildDict(words):
-    # builds morkov dictionary from given words
-    # based on http://pythonadventures.wordpress.com/2014/01/23/generating-pseudo-random-text-using-markov-chains/
-    dictionary = {}
-    for i, word in enumerate(words):
-        try:
-            first, second, third = words[i], words[i+1], words[i+2]
-        except IndexError:
-            break
-        key = (first, second)
-        if key not in dictionary:
-            dictionary[key] = []
-        dictionary[key].append(third)
-    return dictionary
-
-def buildStartlist(dictionary):
-    # generates possible line starts (if the first letter is uppercase here)
-    return [key for key in dictionary.keys() if key[0][0].isupper()]
-
 def makeTransMaps():
     # creates translation maps for the various write functions
     global removePunctuationMap
@@ -176,36 +158,20 @@ def writeWithFlavour(text, flavourType):
     if flavourType == txtSpeechID:
         lf.write(text.translate(noVocalMap))
 
-def loadMessages():
-    # loads up message dictionary and start list
-    # read words from file and generate markov dictionary
-    sourceFile = open(sourcefileName, 'rt')
-    text = sourceFile.read()
-    words = text.split()
-    global messageDict
-    messageDict = buildDict(words)
-
-    # generate list of possible line starts
-    global startList
-    startList = buildStartlist(messageDict)
-    sourceFile.close()
-
-def loadReasons():
+def loadDictFromFile(filename):
     # loads up reasons dictionary and start list
     # read words from file and generate markov dictionary
-    reasonsFile = open(reasonsfileName, 'rt')
-    text = reasonsFile.read()
-    words = text.split()
-    global reasonsDict
-    reasonsDict = buildDict(words)
+    sourceFile = open(filename, 'rt')
+    generatedDict = MarkovDict(sourceFile.read().split())
+    sourceFile.close()
+    return generatedDict
 
-    # generate list of possible line starts
-    global reasonsStartList
-    reasonsStartList = buildStartlist(reasonsDict)
-    reasonsFile.close()
+def _chooseNick(dictionary):
+    # returns nick from list of possible starting words removes punctuation from nick
+    return dictionary.startList[randint(0, startListLen - 1)][0].translate(removePunctuationMap)
 
 def _joinHostmask(prefix, noun, place):
-    # helper function for hostmask creation
+    # returns combined hostmask
     strList = []
     strList.append(prefix)
     strList.append(noun)
@@ -217,20 +183,20 @@ def _joinHostmask(prefix, noun, place):
 def loadUsers():
     # load nicks from startList items, as they all have a uppercase starting letter
     # depends on startList already being generated
-    startListLenght = len(startList)
+    startListLen = len(messageDict.startList)
 
     global users
     users = []
 
     nicks = []
+    
     # generate list of possible nicks
     for i in range(0, userCount*nicksPerUser):
         # choose nick from list of possible starting words, remove punctuation from nick
-        nick = startList[randint(0, startListLenght - 1)][0].translate(removePunctuationMap)
-
+        nick = _chooseNick(messageDict)
         # make sure nick isn't in nicks and of some lenght
         while (nick.lower() in [nick.lower() for nick in nicks]) or (len(nick) < minNickLenght):
-            nick = startList[randint(0, startListLenght - 1)][0].translate(removePunctuationMap)
+            nick = _chooseNick(messageDict)
 
         # make some of them lowercase
         if random() < lowercaseNickProbability:
@@ -334,7 +300,7 @@ def incrementLine():
 
 def writeReason():
     # generates a reason
-    writeSentence(reasonsDict, reasonsStartList, standardID)
+    writeSentence(reasonsDict.dictionary, reasonsDict.startList, standardID)
 
 def setOnline(user):
     if user in offline:
@@ -489,7 +455,7 @@ def writeMessage(user):
     # TODO: OP/Half-OP/Voice symbols
     lf.write(user.nick)
     lf.write("> ")
-    writeSentence(messageDict, startList, user.userType)
+    writeSentence(messageDict.dictionary, messageDict.startList, user.userType)
     lf.write("\n")
 
     incrementLine()
@@ -523,13 +489,15 @@ def main():
     makeTransMaps()
 
     # generate message dictionary and line start list
-    loadMessages()
+    global messageDict
+    messageDict = loadDictFromFile(sourcefileName)
 
     # load users
     loadUsers()
 
     # load up reasons
-    loadReasons()
+    global reasonsDict
+    reasonsDict = loadDictFromFile(reasonsfileName)
 
     # get current date
     global date
