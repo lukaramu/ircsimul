@@ -143,8 +143,8 @@ def makeTransMaps():
     global noVocalMap
     noVocalMap = str.maketrans('', '', 'aeiou')
 
-# writes to log with 'flavour'
 def writeWithFlavour(text, flavourType):
+    # writes to log with 'flavour'
     if flavourType == lowercaseNoPunctuationID:
         lf.write(text.translate(removePunctuationAndUpperCaseMap))
     if flavourType == standardID:
@@ -158,12 +158,17 @@ def writeWithFlavour(text, flavourType):
     if flavourType == txtSpeechID:
         lf.write(text.translate(noVocalMap))
 
+def _splitFileToList(filename):
+    # split text in file to list of words
+    f = open(filename, 'rt')
+    splitList = f.read().split()
+    f.close()
+    return splitList
+
 def loadDictFromFile(filename):
     # loads up reasons dictionary and start list
     # read words from file and generate markov dictionary
-    sourceFile = open(filename, 'rt')
-    generatedDict = MarkovDict(sourceFile.read().split())
-    sourceFile.close()
+    generatedDict = MarkovDict(_splitFileToList(filename))
     return generatedDict
 
 def _chooseNick(dictionary, startListLen):
@@ -206,22 +211,10 @@ def loadUsers():
         nicks.append(nick)
 
     # load lists for username and hostmask generation
-    # load possible user names
-    userFile = open(userfileName, 'r')
-    userList = userFile.read().split()
-    userFile.close()
-    # load possible 'prefixes'
-    prefixFile = open(prefixfileName, 'r')
-    prefixList = prefixFile.read().split()
-    prefixFile.close()
-    # load possible nouns
-    nounFile = open(nounfileName, 'r')
-    nounList = nounFile.read().split()
-    nounFile.close()
-    # load possible places
-    placesFile = open(placesfileName, 'r')
-    placesList = placesFile.read().split()
-    placesFile.close()
+    userList = _splitFileToList(userfileName)
+    prefixList = _splitFileToList(prefixfileName)
+    nounList = _splitFileToList(nounfileName)
+    placesList = _splitFileToList(placesfileName)
 
     # lists used to prevent the same username/hostmask appearing twice
     userNames = []
