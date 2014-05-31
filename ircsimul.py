@@ -9,7 +9,7 @@ from random import random
 from random import randint
 from random import uniform
 
-from markovDict import MarkovDict
+from markov import MarkovDict
 from user import User
 
 # TODO: check if activity is still correct
