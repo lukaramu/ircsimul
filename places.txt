@@ -36,14 +36,14 @@ china
 colombia
 comoros
 congo
-costa rica
+costarica
 croatia
 cuba
 cyprus
 denmark
 djibouti
 dominica
-east timor
+timor
 ecuador
 egypt
 eritrea
@@ -116,7 +116,7 @@ namibia
 nauru
 nepal
 netherlands
-new zealand
+newzealand
 nicaragua
 niger
 nigeria
@@ -133,13 +133,13 @@ poland
 portugal
 qatar
 romania
-russian federation
+russia
 rwanda
 samoa
 senegal
 serbia
 seychelles
-sierra leone
+sierraleone
 singapore
 slovakia
 slovenia
