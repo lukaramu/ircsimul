@@ -55,7 +55,7 @@ from user import User
 
 # START flags and sizes
 # TODO: Make some of them command line arguments?
-lineMax = 200000
+lineMax = 50000
 logfileName = 'ircsimul.log'
 sourcefileName = 'ZARATHUSTRA.txt'
 reasonsfileName = 'reasons.txt'
@@ -166,7 +166,7 @@ def loadDictFromFile(filename):
     sourceFile.close()
     return generatedDict
 
-def _chooseNick(dictionary):
+def _chooseNick(dictionary, startListLen):
     # returns nick from list of possible starting words removes punctuation from nick
     return dictionary.startList[randint(0, startListLen - 1)][0].translate(removePunctuationMap)
 
@@ -189,14 +189,14 @@ def loadUsers():
     users = []
 
     nicks = []
-    
+
     # generate list of possible nicks
     for i in range(0, userCount*nicksPerUser):
         # choose nick from list of possible starting words, remove punctuation from nick
-        nick = _chooseNick(messageDict)
+        nick = _chooseNick(messageDict, startListLen)
         # make sure nick isn't in nicks and of some lenght
         while (nick.lower() in [nick.lower() for nick in nicks]) or (len(nick) < minNickLenght):
-            nick = _chooseNick(messageDict)
+            nick = _chooseNick(messageDict, startListLen)
 
         # make some of them lowercase
         if random() < lowercaseNickProbability:
@@ -290,6 +290,7 @@ def loadUsers():
     global onlineActivityTotal
     onlineActivityTotal = 0
 
+# TODO: make lf.write("\n") part of incrementLine()
 def incrementLine():
     global totalLines
     totalLines += 1
@@ -300,7 +301,7 @@ def incrementLine():
 
 def writeReason():
     # generates a reason
-    writeSentence(reasonsDict.dictionary, reasonsDict.startList, standardID)
+    writeSentence(reasonsDict, standardID)
 
 def setOnline(user):
     if user in offline:
@@ -391,9 +392,8 @@ def checkPopulation():
     while (userCount - onlineUsers) <= minOffline:
         writeLeaveOrQuit(selectOnlineUser(), random() < quitProbability)
 
-def joinPartEvent():
-    # make sure someone is online at all times, or create a fallback
-    user = selectUser()
+# TODO: determine join or part in event selection
+def joinPartEvent(user):
     if user in online:
         writeLeaveOrQuit(user, random() < quitProbability)
     else:
@@ -402,13 +402,7 @@ def joinPartEvent():
     # make sure some amount of peeps are online or offline
     checkPopulation()
 
-def kickEvent():
-    # kicks some user
-    kickee = selectOnlineUser()
-    kicker = selectOnlineUser()
-    while kicker == kickee:
-        kicker = selectOnlineUser()
-
+def kickEvent(kickee, kicker):
     writeTime()
     lf.write(" -!- ")
     lf.write(kickee.nick)
@@ -427,10 +421,10 @@ def kickEvent():
     # make sure some amount of peeps are online or offline
     checkPopulation()
 
-def writeSentence(d, li, flavourType):
+def writeSentence(markovDict, flavourType):
     # generates message from given markov dictionary and start list
     # based on http://pythonadventures.wordpress.com/2014/01/23/generating-pseudo-random-text-using-markov-chains/
-    key = choice(li)
+    key = choice(markovDict.startList)
 
     first, second = key
     writeWithFlavour(first, flavourType)
@@ -439,7 +433,7 @@ def writeSentence(d, li, flavourType):
     lf.write(' ')
     while True:
         try:
-            third = choice(d[key])
+            third = choice(markovDict.dictionary[key])
         except KeyError:
             break
         writeWithFlavour(third, flavourType)
@@ -455,15 +449,15 @@ def writeMessage(user):
     # TODO: OP/Half-OP/Voice symbols
     lf.write(user.nick)
     lf.write("> ")
-    writeSentence(messageDict.dictionary, messageDict.startList, user.userType)
+    writeSentence(messageDict, user.userType)
     lf.write("\n")
 
     incrementLine()
 
-def userAction():
+def userAction(user):
     writeTime()
     lf.write("  * ")
-    lf.write(selectOnlineUser().nick)
+    lf.write(user.nick)
 
     # TODO: implement variable user action text (best with leading space)
     lf.write(" does action\n")
@@ -537,13 +531,17 @@ def main():
             writeMessage(selectOnlineUser())
         elif determineType > actionProbability:
             # random join/part event
-            joinPartEvent()
+            joinPartEvent(selectUser())
         elif determineType > kickProbability:
             # user action
-            userAction()
+            userAction(selectOnlineUser())
         else:
             # kick event
-            kickEvent()
+            kickee = selectOnlineUser()
+            kicker = selectOnlineUser()
+            while kicker == kickee:
+                kicker = selectOnlineUser()
+            kickEvent(kickee, kicker)
 
     # write log closing message
     lf.write("--- Log closed ")
