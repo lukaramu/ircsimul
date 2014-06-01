@@ -1,6 +1,9 @@
+import helpers
+
 class MarkovDict(object):
-    def __init__(self, words):
-        # build morkov dictionary from given words
+    def __init__(self, filename):
+        # build morkov dictionary from words in given file
+        words = helpers.splitFileToList(filename)
         self.dictionary = {}
         for i, word in enumerate(words):
             try:

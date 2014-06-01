@@ -1,7 +1,6 @@
 import datetime
 import logging
 import cProfile
-import string
 from math import sin
 from math import pi
 from random import choice
@@ -9,7 +8,8 @@ from random import random
 from random import randint
 from random import uniform
 
-from markov import MarkovDict
+import helpers
+import markov
 from user import User
 
 # event roadmap (will also nearly obliterate globals):
@@ -67,7 +67,7 @@ from user import User
 
 # START flags and sizes
 # TODO: Make some of them command line arguments?
-lineMax = 200000
+lineMax = 50000
 logfileName = 'ircsimul.log'
 sourcefileName = 'ZARATHUSTRA.txt'
 reasonsfileName = 'reasons.txt'
@@ -147,21 +147,11 @@ def selectUserByActivity(users, total):
         if r <= upto:
             return user
 
-# TODO: move to writer class later (have it accessible to outside, though)
-def makeTransMaps():
-    # creates translation maps for the various write functions
-    global removePunctuationMap
-    removePunctuationMap = str.maketrans('', '', string.punctuation)
-    global removePunctuationAndUpperCaseMap
-    removePunctuationAndUpperCaseMap = str.maketrans(string.ascii_uppercase, string.ascii_lowercase, string.punctuation)
-    global noVocalMap
-    noVocalMap = str.maketrans('', '', 'aeiou')
-
 # TODO: move to writer class later
 def writeWithFlavour(text, flavourType):
     # writes to log with 'flavour'
     if flavourType == lowercaseNoPunctuationID:
-        lf.write(text.translate(removePunctuationAndUpperCaseMap))
+        lf.write(text.translate(helpers.removePunctuationAndUpperCaseMap))
     if flavourType == standardID:
         lf.write(text)
     if flavourType == lowercaseID:
@@ -169,29 +159,14 @@ def writeWithFlavour(text, flavourType):
     if flavourType == uppercaseID:
         lf.write(text.upper())
     if flavourType == noPunctuationID:
-        lf.write(text.translate(removePunctuationMap))
+        lf.write(text.translate(helpers.removePunctuationMap))
     if flavourType == txtSpeechID:
-        lf.write(text.translate(noVocalMap))
-
-# TODO: move to helper file?
-def _splitFileToList(filename):
-    # split text in file to list of words
-    f = open(filename, 'rt')
-    splitList = f.read().split()
-    f.close()
-    return splitList
-
-# TODO: move to markov.py?
-def loadDictFromFile(filename):
-    # loads up reasons dictionary and start list
-    # read words from file and generate markov dictionary
-    generatedDict = MarkovDict(_splitFileToList(filename))
-    return generatedDict
+        lf.write(text.translate(helpers.noVocalMap))
 
 # TODO: move to users.py with loadUsers?
 def _chooseNick(dictionary, startListLen):
     # returns nick from list of possible starting words removes punctuation from nick
-    return dictionary.startList[randint(0, startListLen - 1)][0].translate(removePunctuationMap)
+    return dictionary.startList[randint(0, startListLen - 1)][0].translate(helpers.removePunctuationMap)
 
 # TODO: move to users.py with loadUsers?
 def _joinHostmask(prefix, noun, place):
@@ -232,10 +207,10 @@ def loadUsers():
         nicks.append(nick)
 
     # load lists for username and hostmask generation
-    userList = _splitFileToList(userfileName)
-    prefixList = _splitFileToList(prefixfileName)
-    nounList = _splitFileToList(nounfileName)
-    placesList = _splitFileToList(placesfileName)
+    userList = helpers.splitFileToList(userfileName)
+    prefixList = helpers.splitFileToList(prefixfileName)
+    nounList = helpers.splitFileToList(nounfileName)
+    placesList = helpers.splitFileToList(placesfileName)
 
     # lists used to prevent the same username/hostmask appearing twice
     userNames = []
@@ -516,12 +491,12 @@ def _writeFullTimestamp():
 
 def main():
     # create character maps for various text processing/writing functions
-    makeTransMaps()
+    helpers.makeTransMaps()
 
     # generate message dictionary and line start list
     # TODO: move to markov.py?
     global messageDict
-    messageDict = loadDictFromFile(sourcefileName)
+    messageDict = markov.MarkovDict(sourcefileName)
 
     # load users
     loadUsers()
@@ -529,7 +504,7 @@ def main():
     # load up reasons
     # TODO: move to markov.py?
     global reasonsDict
-    reasonsDict = loadDictFromFile(reasonsfileName)
+    reasonsDict = markov.MarkovDict(reasonsfileName)
 
     # get current date
     # TODO: move to channel later??
