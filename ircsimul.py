@@ -13,8 +13,6 @@ import markov
 from user import User
 
 # event roadmap (will also nearly obliterate globals):
-# move stuff to markov.py
-# (optional) move stuff to helper.py
 # create channel class
 # create writer class
 # move loadUsers to users.py to eventually later have user creation on the fly
@@ -135,9 +133,6 @@ timeSpan = [5, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 10, 10, 10, 10, 12, 15, 20, 3
 days = ['Mon ', 'Tue ', 'Wed ', 'Thu ', 'Fri ', 'Sat ', 'Sun ']
 months = ['Jan ', 'Feb ', 'Mar ', 'Apr ', 'May ', 'Jun ', 'Jul ', 'Aug ', 'Sep ', 'Oct ', 'Nov ', 'Dec ']
 
-# list with symbols that end a sentence
-EOS = ['.', '?', '!', ':', '"', ':', ',', ';']
-
 # TODO: remove when obsolete (after events are implemented)
 def selectUserByActivity(users, total):
     r = uniform(0, total)
@@ -164,9 +159,9 @@ def writeWithFlavour(text, flavourType):
         lf.write(text.translate(helpers.noVocalMap))
 
 # TODO: move to users.py with loadUsers?
-def _chooseNick(dictionary, startListLen):
+def _chooseNick(generator, startListLen):
     # returns nick from list of possible starting words removes punctuation from nick
-    return dictionary.startList[randint(0, startListLen - 1)][0].translate(helpers.removePunctuationMap)
+    return generator.startList[randint(0, startListLen - 1)][0].translate(helpers.removePunctuationMap)
 
 # TODO: move to users.py with loadUsers?
 def _joinHostmask(prefix, noun, place):
@@ -183,7 +178,7 @@ def _joinHostmask(prefix, noun, place):
 def loadUsers():
     # load nicks from startList items, as they all have a uppercase starting letter
     # depends on startList already being generated
-    startListLen = len(messageDict.startList)
+    startListLen = len(messageGenerator.startList)
 
     # TODO: move to channel class later:
     global users
@@ -194,10 +189,10 @@ def loadUsers():
     # generate list of possible nicks
     for i in range(0, userCount*nicksPerUser):
         # choose nick from list of possible starting words, remove punctuation from nick
-        nick = _chooseNick(messageDict, startListLen)
+        nick = _chooseNick(messageGenerator, startListLen)
         # make sure nick isn't in nicks and of some lenght
         while (nick.lower() in [nick.lower() for nick in nicks]) or (len(nick) < minNickLenght):
-            nick = _chooseNick(messageDict, startListLen)
+            nick = _chooseNick(messageGenerator, startListLen)
 
         # make some of them lowercase
         if random() < lowercaseNickProbability:
@@ -296,7 +291,7 @@ def incrementLine():
 # TODO: move to writer class later
 def writeReason():
     # generates a reason
-    writeSentence(reasonsDict, standardID)
+    lf.write(reasonsGenerator.generateSentence())
 
 # TODO: move to channel class later
 def setOnline(user):
@@ -428,29 +423,6 @@ def kickEvent(kickee, kicker):
     # make sure some amount of peeps are online or offline
     checkPopulation()
 
-# move to markov.py?
-def writeSentence(markovDict, flavourType):
-    # generates message from given markov dictionary and start list
-    # based on http://pythonadventures.wordpress.com/2014/01/23/generating-pseudo-random-text-using-markov-chains/
-    key = choice(markovDict.startList)
-
-    first, second = key
-    writeWithFlavour(first, flavourType)
-    lf.write(' ')
-    writeWithFlavour(second, flavourType)
-    lf.write(' ')
-    while True:
-        try:
-            third = choice(markovDict.dictionary[key])
-        except KeyError:
-            break
-        writeWithFlavour(third, flavourType)
-        if third[-1] in EOS:
-            break
-        lf.write(' ')
-        key = (second, third)
-        first, second = key
-
 # TODO: make subclass of Event as messageEvent
 def writeMessage(user):
     writeTime()
@@ -458,7 +430,7 @@ def writeMessage(user):
     # TODO: OP/Half-OP/Voice symbols
     lf.write(user.nick)
     lf.write("> ")
-    writeSentence(messageDict, user.userType)
+    writeWithFlavour(messageGenerator.generateSentence(), user.userType)
     lf.write("\n")
 
     incrementLine()
@@ -493,18 +465,16 @@ def main():
     # create character maps for various text processing/writing functions
     helpers.makeTransMaps()
 
-    # generate message dictionary and line start list
-    # TODO: move to markov.py?
-    global messageDict
-    messageDict = markov.MarkovDict(sourcefileName)
+    # load up message generator
+    global messageGenerator
+    messageGenerator = markov.MarkovGenerator(sourcefileName)
 
     # load users
     loadUsers()
 
-    # load up reasons
-    # TODO: move to markov.py?
-    global reasonsDict
-    reasonsDict = markov.MarkovDict(reasonsfileName)
+    # load up reasons generator
+    global reasonsGenerator
+    reasonsGenerator = markov.MarkovGenerator(reasonsfileName)
 
     # get current date
     # TODO: move to channel later??
