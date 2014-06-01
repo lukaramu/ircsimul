@@ -1,5 +1,5 @@
 from math import sin, pi
-from random import choice, randint, random
+from random import choice, randint, random, uniform
 
 import helpers
 from user import User
@@ -31,7 +31,7 @@ class Channel(object):
 
     def _chooseNick(self, generator, startListLen):
         # returns nick from list of possible starting words removes punctuation from nick
-        return generator.startList[randint(0, startListLen - 1)][0].translate(helpers.removePunctuationMap)
+        return generator.messageStartList[randint(0, startListLen - 1)][0].translate(helpers.removePunctuationMap)
 
     def _joinHostmask(self, prefix, noun, place):
         # returns combined hostmask
@@ -47,7 +47,7 @@ class Channel(object):
     def loadUsers(self, generator):
         # load nicks from startList items, as they all have a uppercase starting letter
         # depends on startList already being generated
-        startListLen = len(generator.startList)
+        startListLen = len(generator.messageStartList)
 
         self.users = []
         nicks = []
@@ -163,10 +163,10 @@ class Channel(object):
 
     # TODO: check if still necessary with new event system
     def selectUser(self):
-        return _selectUserByActivity(self.users, self.activityTotal)
+        return self._selectUserByActivity(self.users, self.activityTotal)
 
     def selectOnlineUser(self):
-        return _selectUserByActivity(self.online, self.onlineActivityTotal)
+        return self._selectUserByActivity(self.online, self.onlineActivityTotal)
 
     def selectOfflineUser(self):
-        return _selectUserByActivity(self.offline, self.offlineActivityTotal)
+        return self._selectUserByActivity(self.offline, self.offlineActivityTotal)

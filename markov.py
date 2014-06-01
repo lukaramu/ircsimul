@@ -6,27 +6,33 @@ import helpers
 EOS = ['.', '?', '!', ':', '"', ':', ',', ';']
 
 class MarkovGenerator(object):
-    def __init__(self, filename):
+    def __init__(self, messageFilename, reasonsFilename):
+        self.messageDict = self._generateDictionary(messageFilename)
+        self.messageStartList = self._generateStartList(self.messageDict)
+        self.reasonsDict = self._generateDictionary(reasonsFilename)
+        self.reasonsStartList = self._generateStartList(self.reasonsDict)
+
+    def _generateDictionary(self, filename):
         # build morkov dictionary from words in given file
         words = helpers.splitFileToList(filename)
-        self.dictionary = {}
+        dictionary = {}
         for i, word in enumerate(words):
             try:
                 first, second, third = words[i], words[i+1], words[i+2]
             except IndexError:
-                break
+                return dictionary
             key = (first, second)
-            if key not in self.dictionary:
-                self.dictionary[key] = []
-            self.dictionary[key].append(third)
+            if key not in dictionary:
+                dictionary[key] = []
+            dictionary[key].append(third)
 
+    def _generateStartList(self, dictionary):
         # generate possible line starts (if the first letter is uppercase)
-        self.startList = [key for key in self.dictionary.keys() if key[0][0].isupper()]
+        return [key for key in dictionary.keys() if key[0][0].isupper()]
 
-    # TODO: create writeListWithFlavour to remove need to join up string?
-    def generateSentence(self):
+    def _generateSentence(self, dictionary, startList):
         # generates message sentence
-        key = choice(self.startList)
+        key = choice(startList)
         sentenceList = []
 
         first, second = key
@@ -34,7 +40,7 @@ class MarkovGenerator(object):
         sentenceList.append(second)
         while True:
             try:
-                third = choice(self.dictionary[key])
+                third = choice(dictionary[key])
             except KeyError:
                 return ' '.join(sentenceList)
             sentenceList.append(third)
@@ -42,3 +48,9 @@ class MarkovGenerator(object):
                 return ' '.join(sentenceList)
             key = (second, third)
             first, second = key
+
+    def generateMessage(self):
+        return self._generateSentence(self.messageDict, self.messageStartList)
+
+    def generateReason(self):
+        return self._generateSentence(self.reasonsDict, self.reasonsStartList)
