@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import logging
 import cProfile
@@ -57,7 +58,6 @@ import userTypes
 
 # START flags and sizes
 # TODO: Make some of them command line arguments?
-lineMax = 200000
 logfileName = 'ircsimul.log'
 sourcefileName = 'ZARATHUSTRA.txt'
 reasonsfileName = 'reasons.txt'
@@ -211,4 +211,13 @@ def profileMain():
     cProfile.run('ircsimul.main()')
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-l", "--lines", help='number of lines to be generated', type=int)
+    args = parser.parse_args()
+
+    global lineMax
+    if args.lines:
+        lineMax = args.lines
+    else:
+        lineMax = 50000
     main()
