@@ -24,6 +24,11 @@ noPunctuationUserProbability = 0.05 + uppercaseUserProbability              # ty
 txtSpeechUserProbability = 0.08 + noPunctuationUserProbability              # type 5
 
 class Channel(object):
+    def __init__(self, name, generator, userCount):
+        self.name = name
+        self.userCount = userCount
+        self.loadUsers(generator)
+
     def _chooseNick(self, generator, startListLen):
         # returns nick from list of possible starting words removes punctuation from nick
         return generator.startList[randint(0, startListLen - 1)][0].translate(helpers.removePunctuationMap)
@@ -38,6 +43,7 @@ class Channel(object):
         return '.'.join(strList)
 
     # TODO: make it possible to create additional users later?
+    # TODO: move some of the property generation to User object initialization
     def loadUsers(self, generator):
         # load nicks from startList items, as they all have a uppercase starting letter
         # depends on startList already being generated
@@ -128,7 +134,39 @@ class Channel(object):
         self.offlineActivityTotal = self.activityTotal
         self.onlineActivityTotal = 0
 
-    def __init__(self, name, generator, userCount):
-        self.name = name
-        self.userCount = userCount
-        self.loadUsers(generator)
+    def setOnline(self, user):
+        if user in self.offline:
+            self.online.append(user)
+            self.offline.remove(user)
+
+            self.onlineActivityTotal += user.activity
+            self.offlineActivityTotal -= user.activity
+            self.onlineUsers += 1
+
+    def setOffline(self, user):
+        if user in self.online:
+            self.online.remove(user)
+            self.offline.append(user)
+
+            self.onlineActivityTotal -= user.activity
+            self.offlineActivityTotal += user.activity
+            self.onlineUsers -= 1
+
+    # TODO: remove when obsolete (after events are implemented)
+    def _selectUserByActivity(self, userList, total):
+        r = uniform(0, total)
+        upto = 0
+        for user in userList:
+            upto += user.activity
+            if r <= upto:
+                return user
+
+    # TODO: check if still necessary with new event system
+    def selectUser(self):
+        return _selectUserByActivity(self.users, self.activityTotal)
+
+    def selectOnlineUser(self):
+        return _selectUserByActivity(self.online, self.onlineActivityTotal)
+
+    def selectOfflineUser(self):
+        return _selectUserByActivity(self.offline, self.offlineActivityTotal)

@@ -11,7 +11,6 @@ from user import User
 import userTypes
 
 # event roadmap (will also nearly obliterate globals):
-# create channel class
 # create writer class
 # create event class
 # create event subclasses
@@ -62,7 +61,7 @@ import userTypes
 
 # START flags and sizes
 # TODO: Make some of them command line arguments?
-lineMax = 50000
+lineMax = 200000
 logfileName = 'ircsimul.log'
 sourcefileName = 'ZARATHUSTRA.txt'
 reasonsfileName = 'reasons.txt'
@@ -104,15 +103,6 @@ timeSpan = [5, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 10, 10, 10, 10, 12, 15, 20, 3
 days = ['Mon ', 'Tue ', 'Wed ', 'Thu ', 'Fri ', 'Sat ', 'Sun ']
 months = ['Jan ', 'Feb ', 'Mar ', 'Apr ', 'May ', 'Jun ', 'Jul ', 'Aug ', 'Sep ', 'Oct ', 'Nov ', 'Dec ']
 
-# TODO: remove when obsolete (after events are implemented)
-def selectUserByActivity(userList, total):
-    r = uniform(0, total)
-    upto = 0
-    for user in userList:
-        upto += user.activity
-        if r <= upto:
-            return user
-
 # TODO: move to writer class later
 def writeWithFlavour(text, flavourType):
     # writes to log with 'flavour'
@@ -147,39 +137,6 @@ def writeReason():
     # generates a reason
     lf.write(reasonsGenerator.generateSentence())
 
-# TODO: move to channel class later
-def setOnline(user):
-    global channel
-    if user in channel.offline:
-        channel.online.append(user)
-        channel.offline.remove(user)
-
-        channel.onlineActivityTotal += user.activity
-        channel.offlineActivityTotal -= user.activity
-        channel.onlineUsers += 1
-
-# TODO: move to channel class later
-def setOffline(user):
-    global channel
-
-    if user in channel.online:
-        channel.online.remove(user)
-        channel.offline.append(user)
-
-        channel.onlineActivityTotal -= user.activity
-        channel.offlineActivityTotal += user.activity
-        channel.onlineUsers -= 1
-
-# TODO: check if still necessary with new event system
-def selectUser():
-    return selectUserByActivity(channel.users, channel.activityTotal)
-
-def selectOnlineUser():
-    return selectUserByActivity(channel.online, channel.onlineActivityTotal)
-
-def selectOfflineUser():
-    return selectUserByActivity(channel.offline, channel.offlineActivityTotal)
-
 # NOW: move to writer class later
 def writeTime():
     lf.write(str(date.hour).zfill(2))
@@ -209,7 +166,7 @@ def writeLeaveOrQuit(user, isQuit):
     writeReason()
     lf.write("]\n")
 
-    setOffline(user)
+    channel.setOffline(user)
 
     incrementLine()
 
@@ -222,7 +179,7 @@ def writeJoin(user):
     lf.write(channel.name)
     lf.write("\n")
 
-    setOnline(user)
+    channel.setOnline(user)
 
     incrementLine()
 
@@ -231,18 +188,18 @@ def populateChannel():
     # populates channel with initialPopulation users
     if logInitialPopulation:
         while channel.onlineUsers < initialPopulation:
-            writeJoin(selectOfflineUser())
+            writeJoin(channel.selectOfflineUser())
     else:
         while channel.onlineUsers < initialPopulation:
-            setOnline(selectOfflineUser())
+            channel.setOnline(channel.selectOfflineUser())
 
 # TODO: move to channel class later
 def checkPopulation():
     # makes sure some amount of peeps are online or offline
     while channel.onlineUsers <= minOnline:
-        writeJoin(selectOfflineUser())
+        writeJoin(channel.selectOfflineUser())
     while (channel.userCount - channel.onlineUsers) <= minOffline:
-        writeLeaveOrQuit(selectOnlineUser(), random() < quitProbability)
+        writeLeaveOrQuit(channel.selectOnlineUser(), random() < quitProbability)
 
 # TODO: determine join or part in event selection
 # TODO: make subclass of Event
@@ -271,7 +228,7 @@ def kickEvent(kickee, kicker):
 
     incrementLine()
 
-    setOffline(kickee)
+    channel.setOffline(kickee)
 
     # make sure some amount of peeps are online or offline
     checkPopulation()
@@ -374,19 +331,19 @@ def main():
         determineType = random()
         if determineType > joinPartProbability:
             # user message
-            writeMessage(selectOnlineUser())
+            writeMessage(channel.selectOnlineUser())
         elif determineType > actionProbability:
             # random join/part event
-            joinPartEvent(selectUser())
+            joinPartEvent(channel.selectUser())
         elif determineType > kickProbability:
             # user action
-            userAction(selectOnlineUser())
+            userAction(channel.selectOnlineUser())
         else:
             # kick event
-            kickee = selectOnlineUser()
-            kicker = selectOnlineUser()
+            kickee = channel.selectOnlineUser()
+            kicker = channel.selectOnlineUser()
             while kicker == kickee:
-                kicker = selectOnlineUser()
+                kicker = channel.selectOnlineUser()
             kickEvent(kickee, kicker)
 
     # write log closing message
