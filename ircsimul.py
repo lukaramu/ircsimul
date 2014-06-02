@@ -59,7 +59,6 @@ import userTypes
 
 # START flags and sizes
 # TODO: Make some of them command line arguments?
-logfileName = 'ircsimul.log'
 sourcefileName = 'ZARATHUSTRA.txt'
 reasonsfileName = 'reasons.txt'
 channelName = 'channel'
@@ -168,7 +167,11 @@ def main():
 
     # open log
     global log
-    log = Log(logfileName)
+    fileObjectList = []
+    fileObjectList.append(open(logfileName, 'wt', encoding='utf8'))
+    if writeStdOut:
+        fileObjectList.append(sys.stdout)
+    log = Log(fileObjectList)
 
     daycache = log.date.day
 
@@ -206,7 +209,7 @@ def main():
     log.writeLogClosing()
 
     # close log file
-    log.lf.close()
+    log.lfs[0].close()
 
 def profileMain():
     cProfile.run('ircsimul.main()')
@@ -217,12 +220,26 @@ if __name__ == "__main__":
         sys.quit(1)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-l", "--lines", help='number of lines to be generated', type=int)
+    parser.add_argument("-l", "--lines", help="number of lines to be generated", type=int)
+    parser.add_argument("-o", "--output", help="sets output file (if not given, logs to ircsimul.log)", type=str)
+    parser.add_argument("--stdout", help="toggles output to stdout", action="store_true")
     args = parser.parse_args()
 
+    # TODO: make this less messy
     global lineMax
     if args.lines:
         lineMax = args.lines
     else:
         lineMax = 50000
+    global logfileName
+    if args.output:
+        logfileName = args.output
+    else:
+        logfileName = 'ircsimul.log'
+    global writeStdOut
+    if args.stdout:
+        writeStdOut = True
+    else:
+        writeStdOut = False
+
     main()

@@ -14,13 +14,17 @@ months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 
 timeSpan = [5, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 10, 10, 10, 10, 12, 15, 20, 30, 30, 30, 20, 60, 120, 300, 600, 1200, 2400]
 
 class Log(object):
-    def __init__(self, filename):
-        self.lf = open(filename, 'wt', encoding='utf8')
+    def __init__(self, fileObjectList):
+        self.lfs = fileObjectList
         self.totalLines = 0
 
         # TODO: move to channel later??
         # get current date
         self.date = datetime.datetime.now()
+
+    def _write(self, line):
+        for lf in self.lfs:
+            lf.write(line)
 
     def _incrementLine(self):
         self.totalLines += 1
@@ -60,61 +64,60 @@ class Log(object):
                                                user.combinedUserAndHost)
 
     def writeQuit(self, user, reason):
-        self.lf.write("{0}quit [{1}]\n".format(self._generateJLQBeginning(user),
-                                               reason))
+        self._write("{0}quit [{1}]\n".format(self._generateJLQBeginning(user), reason))
         self._incrementLine()
 
     def writeLeave(self, user, channelName, reason):
-        self.lf.write("{0}left #{1} [{2}]\n".format(self._generateJLQBeginning(user), 
-                                                    channelName, 
-                                                    reason))
+        self._write("{0}left #{1} [{2}]\n".format(self._generateJLQBeginning(user), 
+                                                  channelName, 
+                                                  reason))
         self._incrementLine()
 
     def writeJoin(self, user, channelName):
         # writes join message to log
-        self.lf.write("{0}joined #{1}\n".format(self._generateJLQBeginning(user),
-                                                channelName))
+        self._write("{0}joined #{1}\n".format(self._generateJLQBeginning(user),
+                                              channelName))
         self._incrementLine()
 
     def writeKick(self, kickee, kicker, channelName, reason):
-        self.lf.write("{0} -!- {1} was kicked from #{2} by {3} [{4}]\n".format(self._generateTime(), 
-                                                                                kickee.nick, 
-                                                                                channelName, 
-                                                                                kicker.nick, 
-                                                                                reason))
+        self._write("{0} -!- {1} was kicked from #{2} by {3} [{4}]\n".format(self._generateTime(), 
+                                                                             kickee.nick, 
+                                                                             channelName, 
+                                                                             kicker.nick, 
+                                                                             reason))
         self._incrementLine()
 
     def writeMessage(self, user, message):
         # TODO: OP/Half-OP/Voice symbols
-        self.lf.write("{0} < {1}> {2}\n".format(self._generateTime(),
-                                                user.nick,
-                                                self._flavourText(message, user.userType)))
+        self._write("{0} < {1}> {2}\n".format(self._generateTime(),
+                                              user.nick,
+                                              self._flavourText(message, user.userType)))
         self._incrementLine()
 
     def writeAction(self, user, action):
-        self.lf.write("{0}  * {1} {2}\n".format(self._generateTime(),
-                                                user.nick, action))
+        self._write("{0}  * {1} {2}\n".format(self._generateTime(),
+                                              user.nick, action))
         self._incrementLine()
 
     def _generateFullTimeStamp(self):
         return "{0} {1} {2} {3}:{4}:{5} {6}".format(days[self.date.weekday()],
-                                                      months[self.date.month - 1],
-                                                      self._zf(self.date.day),
-                                                      self._zf(self.date.hour),
-                                                      self._zf(self.date.minute),
-                                                      self._zf(self.date.second),
-                                                      str(self.date.year))
+                                                    months[self.date.month - 1],
+                                                    self._zf(self.date.day),
+                                                    self._zf(self.date.hour),
+                                                    self._zf(self.date.minute),
+                                                    self._zf(self.date.second),
+                                                    str(self.date.year))
 
     def writeLogOpening(self):
-        self.lf.write("--- Log opened {0}\n".format(self._generateFullTimeStamp()))
+        self._write("--- Log opened {0}\n".format(self._generateFullTimeStamp()))
         self._incrementLine()
 
     def writeLogClosing(self):
-        self.lf.write("--- Log closed {0}\n".format(self._generateFullTimeStamp()))
+        self._write("--- Log closed {0}\n".format(self._generateFullTimeStamp()))
         self._incrementLine()
 
     def writeDayChange(self):
-        self.lf.write("--- Day changed {0} {1} {2} {3}\n".format(days[self.date.weekday()],
+        self._write("--- Day changed {0} {1} {2} {3}\n".format(days[self.date.weekday()],
                                                                months[self.date.month - 1],
                                                                self._zf(self.date.day),
                                                                str(self.date.year)))
