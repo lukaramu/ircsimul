@@ -11,7 +11,7 @@ def makeTransMaps():
 
 def splitFileToList(filename):
     # split text in file to list of words
-    f = open(filename, 'rt')
+    f = open(filename, 'rt', encoding='utf8')
     splitList = f.read().split()
     f.close()
     return splitList

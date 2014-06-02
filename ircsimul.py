@@ -2,6 +2,7 @@ import argparse
 import datetime
 import logging
 import cProfile
+import sys
 from math import sin, pi
 from random import choice, random
 
@@ -12,6 +13,7 @@ from user import User
 from log import Log
 import userTypes
 
+# TODO: event based system: http://pastebin.com/Nw854kcf
 # event roadmap (will also nearly obliterate globals):
 # create event class
 # create event subclasses
@@ -20,7 +22,6 @@ import userTypes
 
 # TODO: check if activity is correct
 # TODO: instead of/additionally to truncating lines at commas, spread message out over seperate messages
-# TODO: event based system: http://pastebin.com/Nw854kcf
 # might be cool: having them ping each other in "conversations" where only the last N messages of the person they are pinging are used in the generator so the conversation is "topical"
 
 # new features:
@@ -115,7 +116,7 @@ def populateChannel():
         while channel.onlineUsers < initialPopulation:
             channel.setOnline(channel.selectOfflineUser())
 
-# TODO: make subclass of Event
+# TODO: make deterministic, replace with leaveEvent and quitEvent
 def joinPartEvent(user):
     if user in channel.online:
         if random() < quitProbability:
@@ -211,6 +212,10 @@ def profileMain():
     cProfile.run('ircsimul.main()')
 
 if __name__ == "__main__":
+    if sys.version_info[0] < 3:
+        print("This script needs to be run on Python 3! (It's being tested on 3.3 currently)")
+        sys.quit(1)
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--lines", help='number of lines to be generated', type=int)
     args = parser.parse_args()

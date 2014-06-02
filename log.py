@@ -15,7 +15,7 @@ timeSpan = [5, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 10, 10, 10, 10, 12, 15, 20, 3
 
 class Log(object):
     def __init__(self, filename):
-        self.lf = open(filename, 'wt')
+        self.lf = open(filename, 'wt', encoding='utf8')
         self.totalLines = 0
 
         # TODO: move to channel later??
