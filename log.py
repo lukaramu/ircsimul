@@ -22,7 +22,8 @@ class Log(object):
         # get current date
         self.date = datetime.datetime.now()
 
-    def _write(self, line):
+    # NOW: make write increment line
+    def write(self, line):
         for lf in self.lfs:
             lf.write(line)
 
@@ -33,6 +34,7 @@ class Log(object):
         # TODO: += ???
         self.date = self.date + datetime.timedelta(seconds = choice(timeSpan) * (sin((self.date.hour + 12) * pi / 24) + 1.5))
 
+    # NOW: move flavouring to message generation in User
     def _flavourText(self, text, flavourType):
         # returns text with 'flavour'
         if flavourType == userTypes.lowercaseNoPunctuation:
@@ -50,37 +52,43 @@ class Log(object):
         else:
             return "ERROR: false flavourType assigned"
 
+    # DELETE after migration
     def _zf(self, arg):
         # zfills string to given argument
         return str(arg).zfill(2)
 
+    # DELETE after migration
     def _generateTime(self):
         return ':'.join([self._zf(self.date.hour), self._zf(self.date.minute)])
 
+    # DELETE after migration
     def _generateJLQBeginning(self, user):
         # generates beginning of join/leave/quit message
         return "{0} -!- {1} [{2}] has ".format(self._generateTime(),
                                                user.nick,
                                                user.combinedUserAndHost)
 
+    # DELETE after migration
     def writeQuit(self, user, reason):
-        self._write("{0}quit [{1}]\n".format(self._generateJLQBeginning(user), reason))
+        self.write("{0}quit [{1}]\n".format(self._generateJLQBeginning(user), reason))
         self._incrementLine()
 
+    # DELETE after migration
     def writeLeave(self, user, channelName, reason):
-        self._write("{0}left #{1} [{2}]\n".format(self._generateJLQBeginning(user), 
+        self.write("{0}left #{1} [{2}]\n".format(self._generateJLQBeginning(user), 
                                                   channelName, 
                                                   reason))
         self._incrementLine()
 
+    # DELETE after migration
     def writeJoin(self, user, channelName):
         # writes join message to log
-        self._write("{0}joined #{1}\n".format(self._generateJLQBeginning(user),
+        self.write("{0}joined #{1}\n".format(self._generateJLQBeginning(user),
                                               channelName))
         self._incrementLine()
 
     def writeKick(self, kickee, kicker, channelName, reason):
-        self._write("{0} -!- {1} was kicked from #{2} by {3} [{4}]\n".format(self._generateTime(), 
+        self.write("{0} -!- {1} was kicked from #{2} by {3} [{4}]\n".format(self._generateTime(), 
                                                                              kickee.nick, 
                                                                              channelName, 
                                                                              kicker.nick, 
@@ -89,13 +97,13 @@ class Log(object):
 
     def writeMessage(self, user, message):
         # TODO: OP/Half-OP/Voice symbols
-        self._write("{0} < {1}> {2}\n".format(self._generateTime(),
+        self.write("{0} < {1}> {2}\n".format(self._generateTime(),
                                               user.nick,
                                               self._flavourText(message, user.userType)))
         self._incrementLine()
 
     def writeAction(self, user, action):
-        self._write("{0}  * {1} {2}\n".format(self._generateTime(),
+        self.write("{0}  * {1} {2}\n".format(self._generateTime(),
                                               user.nick, action))
         self._incrementLine()
 
@@ -109,15 +117,15 @@ class Log(object):
                                                     str(self.date.year))
 
     def writeLogOpening(self):
-        self._write("--- Log opened {0}\n".format(self._generateFullTimeStamp()))
+        self.write("--- Log opened {0}\n".format(self._generateFullTimeStamp()))
         self._incrementLine()
 
     def writeLogClosing(self):
-        self._write("--- Log closed {0}\n".format(self._generateFullTimeStamp()))
+        self.write("--- Log closed {0}\n".format(self._generateFullTimeStamp()))
         self._incrementLine()
 
     def writeDayChange(self):
-        self._write("--- Day changed {0} {1} {2} {3}\n".format(days[self.date.weekday()],
+        self.write("--- Day changed {0} {1} {2} {3}\n".format(days[self.date.weekday()],
                                                                months[self.date.month - 1],
                                                                self._zf(self.date.day),
                                                                str(self.date.year)))

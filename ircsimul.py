@@ -89,17 +89,19 @@ useTxtSpeech = 0.5
 
 # END flags and sizes
 
-# TODO: make subclass of Event
+# NOW: make sure reason is passed as argument to LeaveEvent
+# DELETE after migration
 def leaveEvent(user):
     log.writeLeave(user, channel.name, markovGenerator.generateReason())
     channel.setOffline(user)
 
-# TODO: make subclass of Event
+# NOW: make sure reason is passed as argument to QuitEvent
+# DELETE after migration
 def quitEvent(user):
     log.writeQuit(user, markovGenerator.generateReason())
     channel.setOffline(user)
 
-# TODO: make subclass of Event
+# DELETE after migration
 def joinEvent(user):
     # writes join message to log
     log.writeJoin(user, channel.name)
@@ -144,7 +146,9 @@ def kickEvent(kickee, kicker):
     # make sure some amount of peeps are online or offline
     checkPopulation()
 
-# TODO: make subclass of Event
+# DELETE after migration
+# NOW: make sure user passes generated message
+# NOW: move flavouring to message generation in User
 def messageEvent(user):
     log.writeMessage(user, markovGenerator.generateMessage())
 
