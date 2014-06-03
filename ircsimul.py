@@ -138,7 +138,8 @@ def checkPopulation():
     while (channel.userCount - channel.onlineUsers) <= minOffline:
         joinPartEvent(channel.selectOnlineUser())
 
-# TODO: make subclass of Event
+# NOW: make sure reason is passed as argument to KickEvent
+# DELETE after migration
 def kickEvent(kickee, kicker):
     log.writeKick(kickee, kicker, channel.name, markovGenerator.generateReason())
     channel.setOffline(kickee)

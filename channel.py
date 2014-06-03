@@ -138,6 +138,7 @@ class Channel(object):
         if user in self.offline:
             self.online.append(user)
             self.offline.remove(user)
+            user.isOnline = True
 
             self.onlineActivityTotal += user.activity
             self.offlineActivityTotal -= user.activity
@@ -147,6 +148,7 @@ class Channel(object):
         if user in self.online:
             self.online.remove(user)
             self.offline.append(user)
+            user.isOnline = False
 
             self.onlineActivityTotal -= user.activity
             self.offlineActivityTotal += user.activity

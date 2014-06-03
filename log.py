@@ -18,9 +18,9 @@ class Log(object):
         self.lfs = fileObjectList
         self.totalLines = 0
 
-        # TODO: move to channel later??
+        # TODO: move to channel/ w/e later??
         # get current date
-        self.date = datetime.datetime.now()
+        self.date = datetime.datetime.utcnow()
 
     # NOW: make write increment line
     def write(self, line):
@@ -87,6 +87,7 @@ class Log(object):
                                               channelName))
         self._incrementLine()
 
+    # DELETE after migration
     def writeKick(self, kickee, kicker, channelName, reason):
         self.write("{0} -!- {1} was kicked from #{2} by {3} [{4}]\n".format(self._generateTime(), 
                                                                              kickee.nick, 
@@ -95,6 +96,7 @@ class Log(object):
                                                                              reason))
         self._incrementLine()
 
+    # DELETE after migration
     def writeMessage(self, user, message):
         # TODO: OP/Half-OP/Voice symbols
         self.write("{0} < {1}> {2}\n".format(self._generateTime(),
@@ -102,6 +104,7 @@ class Log(object):
                                               self._flavourText(message, user.userType)))
         self._incrementLine()
 
+    # DELETE after migration
     def writeAction(self, user, action):
         self.write("{0}  * {1} {2}\n".format(self._generateTime(),
                                               user.nick, action))
@@ -116,6 +119,7 @@ class Log(object):
                                                     self._zf(self.date.second),
                                                     str(self.date.year))
 
+    # NOW: delete _incrementLine() calls after it is put to self.write
     def writeLogOpening(self):
         self.write("--- Log opened {0}\n".format(self._generateFullTimeStamp()))
         self._incrementLine()
