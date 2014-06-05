@@ -6,6 +6,7 @@ import sys
 from math import sin, pi
 from random import choice, random
 from queue import PriorityQueue, Empty
+import time
 
 import helpers
 import markov
@@ -16,8 +17,7 @@ import userTypes
 from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, UserActionEvent
 
 # TODO: event based system: http://pastebin.com/Nw854kcf
-# event roadmap (will also nearly obliterate globals):
-# implement per-user event creation (e.g.)
+# TODO: implement per-user event creation (e.g.)
 
 # TODO: <starfire> loops are bad always put a base case!!
 # TODO: check if activity is correct
@@ -68,7 +68,6 @@ initialUserCount = 40                  # make sure this is less number of possib
 minOnline = 5
 minOffline = 5
 initialPopulation = 10
-logInitialPopulation = True
 
 # possibility that a user quits instead of just leaving
 # TODO: make consistent among user (e.g. User value)
@@ -91,7 +90,7 @@ useTxtSpeech = 0.5
 # TODO: create a function that simulates this behavior with fluid numbers after being given a general activity.
 # TODO: tweak activity: currently 1,000,000 lines go from May 29 2014 to Apr 05 2023
 # possible timedeltas after messages
-timeSpan = [5, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 10, 10, 10, 10, 12, 15, 20, 30, 30, 30, 20, 60, 120, 300, 600, 1200, 2400]
+timeSpan = [5, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 10, 10, 10, 10, 12, 15, 20, 30, 30, 30, 20, 60, 120, 300, 600]
 
 # END flags and sizes
 
@@ -113,7 +112,8 @@ def flavourText(text, user):
     else:
         return "ERROR: false flavourType assigned"
 
-def main(lineMax, logfileName, writeStdOut):
+def main(lineMax=5000, logfileName='ircsimul.log', writeStdOut=False, realTime=False, 
+    logInitialPopulation=False):
     # create character maps for various text processing/writing functions
     helpers.makeTransMaps()
 
@@ -121,7 +121,6 @@ def main(lineMax, logfileName, writeStdOut):
     markovGenerator = markov.MarkovGenerator(sourcefileName, reasonsfileName)
 
     # load channel
-    global channel
     channel = Channel(channelName, markovGenerator, initialUserCount)
 
     # open log
@@ -149,8 +148,7 @@ def main(lineMax, logfileName, writeStdOut):
             queue.put(event)
     else:
         for i in range(0, initialPopulation):
-            event = channel.setOnline(channel.selectOfflineUser())
-            queue.put(event)
+            channel.setOnline(channel.selectOfflineUser())
 
     # bulk of messages
     currentEvent = None
@@ -162,7 +160,14 @@ def main(lineMax, logfileName, writeStdOut):
                 if currentEvent:
                     line = currentEvent.process()
                     if line:
-                        log.write(line)
+                        now = datetime.datetime.utcnow()
+                        if realTime and (currentEvent.date > now):
+                            delta = currentEvent.date - datetime.datetime.utcnow()
+                            time.sleep(delta.total_seconds())
+                            log.write(line)
+                            log.flush()
+                        else:
+                            log.write(line)
                 else: break
         except Empty:
             pass
@@ -232,6 +237,8 @@ if __name__ == "__main__":
     parser.add_argument("-l", "--lines", help="number of lines to be generated", type=int)
     parser.add_argument("-o", "--output", help="sets output file (if not given, logs to ircsimul.log)", type=str)
     parser.add_argument("--stdout", help="toggles output to stdout", action="store_true")
+    parser.add_argument("--realtime", help="toggles output to stdout", action="store_true")
+    parser.add_argument("--loginitpop", help="log initial population of channel, use Ctrl+C to quit", action="store_true")
     args = parser.parse_args()
 
     # TODO: make this less messy
@@ -243,9 +250,6 @@ if __name__ == "__main__":
         logfileName = args.output
     else:
         logfileName = 'ircsimul.log'
-    if args.stdout:
-        writeStdOut = True
-    else:
-        writeStdOut = False
 
-    main(lineMax, logfileName, writeStdOut)
+    main(lineMax=lineMax, logfileName=logfileName, writeStdOut=args.stdout, realTime=args.realtime,
+        logInitialPopulation=args.loginitpop)
