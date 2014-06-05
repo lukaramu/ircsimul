@@ -25,6 +25,7 @@ import userTypes
 # might be cool: having them ping each other in "conversations" where only the last N messages of the person they are pinging are used in the generator so the conversation is "topical"
 
 # new features:
+# TODO: realtime output
 # TODO: nick changes
 # TODO: channel modes (o and b)
 # TODO: topics
@@ -117,7 +118,7 @@ def populateChannel():
         while channel.onlineUsers < initialPopulation:
             channel.setOnline(channel.selectOfflineUser())
 
-# TODO: make deterministic, replace with leaveEvent and quitEvent
+# TODO: make determination before calling this, and thus replace with LeaveEvent and QuitEvent
 def joinPartEvent(user):
     if user in channel.online:
         if random() < quitProbability:

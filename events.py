@@ -29,7 +29,8 @@ class JLQEvent(Event):
 
 # NOW: population check??
 class KickEvent(Event):
-    def __init__(self, kickee, kicker, reason, channel):
+    def __init__(self, date, kickee, kicker, reason, channel):
+        self.date = date
         self.kickee = kickee
         self.kicker = kicker
         self.reason = reason
@@ -45,7 +46,8 @@ class KickEvent(Event):
 
 # NOW: population check??
 class LeaveEvent(JLQEvent):
-    def __init__(self, user, reason, channel):
+    def __init__(self, date, user, reason, channel):
+        self.date = date
         self.user = user
         self.reason = reason
         self.channel = channel
@@ -56,7 +58,8 @@ class LeaveEvent(JLQEvent):
 
 # NOW: population check??
 class QuitEvent(JLQEvent):
-    def __init__(self, user, reason, channel):
+    def __init__(self, date, user, reason, channel):
+        self.date = date
         self.user = user
         self.reason = reason
         self.channel = channel
@@ -67,7 +70,8 @@ class QuitEvent(JLQEvent):
 
 # NOW: population check??
 class JoinEvent(JLQEvent):
-    def __init__(self, user, channel):
+    def __init__(self, date, user, channel):
+        self.date = date
         self.user = user
         self.channel = channel
 
@@ -76,7 +80,8 @@ class JoinEvent(JLQEvent):
         return "{0}joined #{1}\n".format(self._generateJLQBeginning(), self.channel.name)
 
 class MessageEvent(Event):
-    def __init__(self, user, message):
+    def __init__(self, date, user, message):
+        self.date = date
         self.user = user
         self.message = message
 
@@ -84,11 +89,12 @@ class MessageEvent(Event):
         return "{0} < {1}> {2}\n".format(self._generateTime(), self.user.nick, self.message)
 
 class UserActionEvent(Event):
-    def __init__(self, user, action):
+    def __init__(self, date, user, action):
+        self.date = date
         self.user = user
         self.action = action
 
     def process(self):
-        self.write("{0}  * {1} {2}\n".format(self._generateTime(),
-                                             self.user.nick,
-                                             self.action))
+        return "{0}  * {1} {2}\n".format(self._generateTime(),
+                                         self.user.nick,
+                                         self.action)
