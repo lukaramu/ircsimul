@@ -152,7 +152,10 @@ def main(lineMax=5000, logfileName='ircsimul.log', writeStdOut=False, realTime=F
 
     # bulk of messages
     currentEvent = None
-    while log.totalLines < lineMax - 1:
+    while True:
+        if not lineMax == -1:
+            if log.totalLines >= lineMax - 1:
+                break
         # empty queue
         try:
             while not queue.empty():
@@ -163,6 +166,7 @@ def main(lineMax=5000, logfileName='ircsimul.log', writeStdOut=False, realTime=F
                         now = datetime.datetime.utcnow()
                         if realTime and (currentEvent.date > now):
                             delta = currentEvent.date - datetime.datetime.utcnow()
+                            print(str(delta.total_seconds()))
                             time.sleep(delta.total_seconds())
                             log.write(line)
                             log.flush()
@@ -217,7 +221,7 @@ def main(lineMax=5000, logfileName='ircsimul.log', writeStdOut=False, realTime=F
             queue.put(event)
 
         # TODO: is += possible here?
-        date = date + datetime.timedelta(seconds = choice(timeSpan) * (sin((date.hour + 12) * pi / 24) + 1.5))
+        date = date + datetime.timedelta(seconds = choice(timeSpan) * (sin((date.hour) / 24 * pi) + 1.5))
 
     # write log closing message
     log.writeLogClosing(date)
@@ -234,7 +238,7 @@ if __name__ == "__main__":
         sys.quit(1)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-l", "--lines", help="number of lines to be generated", type=int)
+    parser.add_argument("-l", "--lines", help="number of lines to be generated, -1 --> infinite lines", type=int)
     parser.add_argument("-o", "--output", help="sets output file (if not given, logs to ircsimul.log)", type=str)
     parser.add_argument("--stdout", help="toggles output to stdout", action="store_true")
     parser.add_argument("--realtime", help="toggles output to stdout", action="store_true")
