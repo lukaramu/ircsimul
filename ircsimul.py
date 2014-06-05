@@ -5,6 +5,7 @@ import cProfile
 import sys
 from math import sin, pi
 from random import choice, random
+from queue import PriorityQueue, Empty
 
 import helpers
 import markov
@@ -12,14 +13,13 @@ from channel import Channel
 from user import User
 from log import Log
 import userTypes
+from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, UserActionEvent
 
 # TODO: event based system: http://pastebin.com/Nw854kcf
 # event roadmap (will also nearly obliterate globals):
-# create event class
-# create event subclasses
-# move current system to be event-based
 # implement per-user event creation (e.g.)
 
+# TODO: <starfire> loops are bad always put a base case!!
 # TODO: check if activity is correct
 # TODO: instead of/additionally to truncating lines at commas, spread message out over seperate messages
 # might be cool: having them ping each other in "conversations" where only the last N messages of the person they are pinging are used in the generator so the conversation is "topical"
@@ -88,83 +88,36 @@ useUppercase = 0.2
 useNoPunctuation = 0.99
 useTxtSpeech = 0.5
 
+# TODO: create a function that simulates this behavior with fluid numbers after being given a general activity.
+# TODO: tweak activity: currently 1,000,000 lines go from May 29 2014 to Apr 05 2023
+# possible timedeltas after messages
+timeSpan = [5, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 10, 10, 10, 10, 12, 15, 20, 30, 30, 30, 20, 60, 120, 300, 600, 1200, 2400]
+
 # END flags and sizes
 
-# NOW: make sure reason is passed as argument to LeaveEvent
-# DELETE after migration
-def leaveEvent(user):
-    log.writeLeave(user, channel.name, markovGenerator.generateReason())
-    channel.setOffline(user)
-
-# NOW: make sure reason is passed as argument to QuitEvent
-# DELETE after migration
-def quitEvent(user):
-    log.writeQuit(user, markovGenerator.generateReason())
-    channel.setOffline(user)
-
-# DELETE after migration
-def joinEvent(user):
-    # writes join message to log
-    log.writeJoin(user, channel.name)
-    channel.setOnline(user)
-
-# TODO: move to channel class later
-def populateChannel():
-    # populates channel with initialPopulation users
-    if logInitialPopulation:
-        while channel.onlineUsers < initialPopulation:
-            joinEvent(channel.selectOfflineUser())
+# TODO: move flavouring to message generation in User
+def flavourText(text, user):
+    # returns text with 'flavour'
+    if user.userType == userTypes.lowercaseNoPunctuation:
+        return text.translate(helpers.removePunctuationAndUpperCaseMap)
+    elif user.userType == userTypes.standard:
+        return text
+    elif user.userType == userTypes.lowercase:
+        return text.lower()
+    elif user.userType == userTypes.uppercase:
+        return text.upper()
+    elif user.userType == userTypes.noPunctuation:
+        return text.translate(helpers.removePunctuationMap)
+    elif user.userType == userTypes.txtSpeech:
+        return text.translate(helpers.noVocalMap)
     else:
-        while channel.onlineUsers < initialPopulation:
-            channel.setOnline(channel.selectOfflineUser())
+        return "ERROR: false flavourType assigned"
 
-# TODO: make determination before calling this, and thus replace with LeaveEvent and QuitEvent
-def joinPartEvent(user):
-    if user in channel.online:
-        if random() < quitProbability:
-            quitEvent(user)
-        else:
-            leaveEvent(user)
-    else:
-        joinEvent(user)
-
-    # make sure some amount of peeps are online or offline
-    checkPopulation()
-
-# TODO: move to channel class later
-def checkPopulation():
-    # makes sure some amount of peeps are online or offline
-    while channel.onlineUsers <= minOnline:
-        joinPartEvent(channel.selectOfflineUser())
-    while (channel.userCount - channel.onlineUsers) <= minOffline:
-        joinPartEvent(channel.selectOnlineUser())
-
-# NOW: make sure reason is passed as argument to KickEvent
-# DELETE after migration
-def kickEvent(kickee, kicker):
-    log.writeKick(kickee, kicker, channel.name, markovGenerator.generateReason())
-    channel.setOffline(kickee)
-
-    # make sure some amount of peeps are online or offline
-    checkPopulation()
-
-# DELETE after migration
-# NOW: make sure user passes generated message
-# NOW: move flavouring to message generation in User
-def messageEvent(user):
-    log.writeMessage(user, markovGenerator.generateMessage())
-
-# TODO: make subclass of Event
-def userActionEvent(user):
-    # TODO: implement variable user action text (best with leading space)
-    log.writeAction(user, "does action")
-
-def main():
+def main(lineMax, logfileName, writeStdOut):
     # create character maps for various text processing/writing functions
     helpers.makeTransMaps()
 
     # load up markov generator
-    global markovGenerator
     markovGenerator = markov.MarkovGenerator(sourcefileName, reasonsfileName)
 
     # load channel
@@ -172,47 +125,97 @@ def main():
     channel = Channel(channelName, markovGenerator, initialUserCount)
 
     # open log
-    global log
     fileObjectList = []
     fileObjectList.append(open(logfileName, 'wt', encoding='utf8'))
     if writeStdOut:
         fileObjectList.append(sys.stdout)
     log = Log(fileObjectList)
 
-    daycache = log.date.day
+    # get current date
+    date = datetime.datetime.utcnow()
+
+    daycache = date.day
+
+    # create queue
+    queue = PriorityQueue()
 
     # write opening of log
-    log.writeLogOpening()
+    log.writeLogOpening(date)
 
-    # initial population of channel
-    populateChannel()
+    # populates channel with initialPopulation users
+    if logInitialPopulation:
+        for i in range(0, initialPopulation):
+            event = JoinEvent(date, channel.selectOfflineUser(), channel)
+            queue.put(event)
+    else:
+        for i in range(0, initialPopulation):
+            event = channel.setOnline(channel.selectOfflineUser())
+            queue.put(event)
 
     # bulk of messages
+    currentEvent = None
     while log.totalLines < lineMax - 1:
+        # empty queue
+        try:
+            while not queue.empty():
+                currentEvent = queue.get()
+                if currentEvent:
+                    line = currentEvent.process()
+                    if line:
+                        log.write(line)
+                else: break
+        except Empty:
+            pass
+
         # check if day changed, if so, write day changed message
-        if daycache != log.date.day:
-            log.writeDayChange()
-            daycache = log.date.day
+        # TODO: make this event based
+        if daycache != date.day:
+            log.writeDayChange(date)
+            daycache = date.day
 
         # generate line
         determineType = random()
         if determineType > joinPartProbability:
             # user message
-            messageEvent(channel.selectOnlineUser())
+            user = channel.selectOnlineUser()
+            event = MessageEvent(date, user, flavourText(markovGenerator.generateMessage(), user))
         elif determineType > actionProbability:
             # random join/part event
-            joinPartEvent(channel.selectUser())
+            user = channel.selectUser()
+            if user in channel.online:
+                if random() < quitProbability:
+                    event = QuitEvent(date, user, markovGenerator.generateReason(), channel)
+                else:
+                    event = LeaveEvent(date, user, markovGenerator.generateReason(), channel)
+            else:
+                event = JoinEvent(date, user, channel)
         elif determineType > kickProbability:
             # user action
-            userActionEvent(channel.selectOnlineUser())
+            # TODO: implement variable user action text
+            event = UserActionEvent(date, channel.selectOnlineUser(), "does action")
         else:
             # kick event
-            kickee = channel.selectOnlineUser()
-            kicker = channel.selectOnlineUser()
-            kickEvent(kickee, kicker)
+            event = KickEvent(date, channel.selectOnlineUser(), channel.selectOnlineUser(), markovGenerator.generateReason(), channel)
+        queue.put(event)
+
+        # makes sure some amount of peeps are online or offline
+        # TODO: check if population checks could be made obsolete by having the next join/parts already cached
+        # TODO: move to channel class later?
+        if channel.onlineUsers < minOnline:
+            event = JoinEvent(date, channel.selectOfflineUser(), channel)
+            queue.put(event)
+        if (channel.userCount - channel.onlineUsers) < minOffline:
+            if random() < quitProbability:
+                event = QuitEvent(date, user, markovGenerator.generateReason(), channel)
+            else:
+                event = LeaveEvent(date, user, markovGenerator.generateReason(), channel)
+            queue.put(event)
+
+        # TODO: is += possible here?
+        date = date + datetime.timedelta(seconds = choice(timeSpan) * (sin((date.hour + 12) * pi / 24) + 1.5))
 
     # write log closing message
-    log.writeLogClosing()
+    log.writeLogClosing(date)
 
     # close log file
     log.lfs[0].close()
@@ -232,20 +235,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # TODO: make this less messy
-    global lineMax
     if args.lines:
         lineMax = args.lines
     else:
         lineMax = 50000
-    global logfileName
     if args.output:
         logfileName = args.output
     else:
         logfileName = 'ircsimul.log'
-    global writeStdOut
     if args.stdout:
         writeStdOut = True
     else:
         writeStdOut = False
 
-    main()
+    main(lineMax, logfileName, writeStdOut)

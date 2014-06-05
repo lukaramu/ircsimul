@@ -1,5 +1,3 @@
-import events
-
 class User(object):
     def __init__(self, ID, username, hostmask, nicks, userType, activity, isOnline):
         self.ID = ID
@@ -13,6 +11,3 @@ class User(object):
         self.nick = nicks[0]
         # TODO: do this:
         self.combinedUserAndHost = '@'.join([username, hostmask])
-
-    def process(self):
-        pass
