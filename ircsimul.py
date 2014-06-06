@@ -3,6 +3,7 @@ import datetime
 import logging
 import cProfile
 import sys
+import os
 from math import sin, pi
 from random import choice, random
 from queue import PriorityQueue, Empty
@@ -60,8 +61,8 @@ from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, Us
 
 # START flags and sizes
 # TODO: Make some of them command line arguments?
-sourcefileName = 'ZARATHUSTRA.txt'
-reasonsfileName = 'reasons.txt'
+sourcefileName = os.path.join(os.path.dirname(__file__), 'ZARATHUSTRA.txt')
+reasonsfileName = os.path.join(os.path.dirname(__file__), 'reasons.txt')
 channelName = 'channel'
 
 initialUserCount = 40                  # make sure this is less number of possible users
@@ -252,7 +253,7 @@ if __name__ == "__main__":
     if args.output:
         logfileName = args.output
     else:
-        logfileName = 'ircsimul.log'
+        logfileName = os.path.join(os.path.dirname(__file__), 'ircsimul.log')
 
     main(lineMax=lineMax, logfileName=logfileName, writeStdOut=args.stdout, realTime=args.realtime,
         logInitialPopulation=args.loginitpop)

@@ -1,5 +1,6 @@
 from math import sin, pi
 from random import choice, randint, random, uniform
+import os
 
 import helpers
 from user import User
@@ -10,10 +11,10 @@ minNickLenght = 6
 lowercaseNickProbability = 0.5
 
 # user/host source files:
-userfileName = 'users.txt'
-prefixfileName = 'adjectives.txt'
-nounfileName = 'nouns.txt'
-placesfileName = 'places.txt'
+userfileName = os.path.join(os.path.dirname(__file__), 'users.txt')
+prefixfileName = os.path.join(os.path.dirname(__file__), 'adjectives.txt')
+nounfileName = os.path.join(os.path.dirname(__file__), 'nouns.txt')
+placesfileName = os.path.join(os.path.dirname(__file__), 'places.txt')
 
 # probabilities for various user types
 lowercaseNoPunctuationUserProbability = 0.4                                 # type 0
@@ -80,6 +81,8 @@ class Channel(object):
         self.offline = []
         self.online = []
 
+        inverseTotal = sum(1 / n for n in range(1, self.userCount + 1))
+
         # choose values for each user, create user and append to users
         for i in range(0, self.userCount):
             # choose username
@@ -116,8 +119,7 @@ class Channel(object):
                 userType = userTypes.txtSpeech
 
             # choose activity level
-            # TODO: find better activity distribution
-            activity = (sin(random() * pi) + 1) / 2
+            activity = 1 / (i + 1) / self.userCount / inverseTotal
 
             # create User object, append to global user list
             # user is initially offline
