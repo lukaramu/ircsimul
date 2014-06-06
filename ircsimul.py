@@ -166,7 +166,6 @@ def main(lineMax=5000, logfileName='ircsimul.log', writeStdOut=False, realTime=F
                         now = datetime.datetime.utcnow()
                         if realTime and (currentEvent.date > now):
                             delta = currentEvent.date - datetime.datetime.utcnow()
-                            print(str(delta.total_seconds()))
                             time.sleep(delta.total_seconds())
                             log.write(line)
                             log.flush()
