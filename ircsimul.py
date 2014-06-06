@@ -95,7 +95,7 @@ useTxtSpeech = 0.5
 # TODO: create a function that simulates this behavior with fluid numbers after being given a general activity.
 # TODO: tweak activity: currently 1,000,000 lines go from May 29 2014 to Apr 05 2023
 # possible timedeltas after messages
-timeSpan = [5, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 10, 10, 10, 10, 12, 15, 20, 30, 30, 30, 20, 60, 120, 300, 600]
+timeSpan = [5, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 10, 10, 10, 10, 12, 15, 20, 30, 30, 30, 20, 60, 120, 300]
 
 # END flags and sizes
 
@@ -225,7 +225,7 @@ def main(lineMax=5000, logfileName='ircsimul.log', writeStdOut=False, realTime=F
             queue.put(event)
 
         # TODO: is += possible here?
-        date = date + datetime.timedelta(seconds = choice(timeSpan) * (sin((date.hour) / 24 * pi) / 2 + 2.5))
+        date = date + datetime.timedelta(seconds = choice(timeSpan) * (sin((date.hour) / 24 * pi) / 2 + 0.7))
 
     # write log closing message
     log.writeLogClosing(date)
