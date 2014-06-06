@@ -9,5 +9,4 @@ class User(object):
         self.isOnline = isOnline
 
         self.nick = nicks[0]
-        # TODO: do this:
         self.combinedUserAndHost = '@'.join([username, hostmask])

@@ -19,7 +19,11 @@ from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, Us
 
 # TODO: event based system: http://pastebin.com/Nw854kcf
 # TODO: implement per-user event creation (e.g.)
+# TODO: make users not join every day
+# TODO: idlers???
+# TODO: make users not say something every day
 
+# TODO: x slaps y with around a bit with a large trout
 # TODO: <starfire> loops are bad always put a base case!!
 # TODO: check if activity is correct
 # TODO: instead of/additionally to truncating lines at commas, spread message out over seperate messages
@@ -95,7 +99,7 @@ timeSpan = [5, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 10, 10, 10, 10, 12, 15, 20, 3
 
 # END flags and sizes
 
-# TODO: move flavouring to message generation in User
+# TODO: move flavouring back to MessageEvent
 def flavourText(text, user):
     # returns text with 'flavour'
     if user.userType == userTypes.lowercaseNoPunctuation:
@@ -221,7 +225,7 @@ def main(lineMax=5000, logfileName='ircsimul.log', writeStdOut=False, realTime=F
             queue.put(event)
 
         # TODO: is += possible here?
-        date = date + datetime.timedelta(seconds = choice(timeSpan) * (sin((date.hour) / 24 * pi) + 1.5))
+        date = date + datetime.timedelta(seconds = choice(timeSpan) * (sin((date.hour) / 24 * pi) / 2 + 2.5))
 
     # write log closing message
     log.writeLogClosing(date)

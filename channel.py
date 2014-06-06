@@ -119,7 +119,7 @@ class Channel(object):
                 userType = userTypes.txtSpeech
 
             # choose activity level
-            activity = 1 / (i + 1) / self.userCount / inverseTotal
+            activity = 1 / (i + 1) / self.userCount / inverseTotal * 2
 
             # create User object, append to global user list
             # user is initially offline
