@@ -161,11 +161,13 @@ class MessageEvent(Event):
                         generateMore = True
                     else:
                         generateMore = False
-                    queue.put(MessageEvent(messageDate + datetime.timedelta(seconds=i * 2 + 0.5 * random()),
-                                           self.user,
-                                           helpers.flavourText(message, self.user),
-                                           self.channel,
-                                           generateMore))
+                    flavoured = helpers.flavourText(message, self.user)
+                    if flavoured:
+                        queue.put(MessageEvent(messageDate + datetime.timedelta(seconds=i * 2 + 0.5 * random()),
+                                               self.user,
+                                               flavoured,
+                                               self.channel,
+                                               generateMore))
         return line
 
 class UserActionEvent(Event):

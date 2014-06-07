@@ -27,19 +27,19 @@ def flavourText(text, user):
     # returns text with 'flavour'
     if random() < userTypes.useProbabilities[user.userType]:
         if user.userType == userTypes.lowercaseNoPunctuation:
-            return text.translate(removePunctuationAndUpperCaseMap)
+            return text.translate(removePunctuationAndUpperCaseMap).lstrip()
         elif user.userType == userTypes.standard:
-            return text
+            return text.lstrip()
         elif user.userType == userTypes.lowercase:
-            return text.lower()
+            return text.lower().lstrip()
         elif user.userType == userTypes.uppercase:
-            return text.upper()
+            return text.upper().lstrip()
         elif user.userType == userTypes.noPunctuation:
-            return text.translate(removePunctuationMap)
+            return text.translate(removePunctuationMap).lstrip()
         elif user.userType == userTypes.txtSpeech:
-            return text.translate(noVocalMap)
+            return text.translate(noVocalMap).lstrip()
         else:
             debugPrint("ERROR: false flavourType assigned")
             return "ERROR: false flavourType assigned"
     else:
-        return text
+        return text.lstrip()

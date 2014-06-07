@@ -53,7 +53,7 @@ class MarkovGenerator(object):
             first, second = key
 
     def generateMessages(self):
-        return [i for i in re.split("[,;\-]", self._generateSentence(self.messageDict, self.messageStartList, EOS)) if i]
+        return [i for i in re.split('[",;\-]', self._generateSentence(self.messageDict, self.messageStartList, EOS)) if i]
 
     def generateMessage(self):
         return self._generateSentence(self.messageDict, self.messageStartList, EOSL)
