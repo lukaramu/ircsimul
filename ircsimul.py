@@ -85,7 +85,7 @@ def generateMetaFile(channel):
     metaFile.close()
 
 def main(lineMax=50000, logfileName='ircsimul.log', writeStdOut=False, realTime=False, 
-    logInitialPopulation=False, meta=False):
+    logInitialPopulation=False, meta=False, days=-1):
     # load up markov generator
     markovGenerator = markov.MarkovGenerator(sourcefileName, reasonsfileName)
 
@@ -105,6 +105,9 @@ def main(lineMax=50000, logfileName='ircsimul.log', writeStdOut=False, realTime=
 
     # get current date
     date = datetime.datetime.utcnow()
+    # if days are finite, reset time to 00:00:00
+    if days > 0:
+        date = datetime.datetime.combine(date.date(), datetime.time())
 
     daycache = date.day
 
@@ -150,11 +153,15 @@ def main(lineMax=50000, logfileName='ircsimul.log', writeStdOut=False, realTime=
 
     # bulk of messages
     currentEvent = None
+    day = 0
     while True:
-        if not lineMax == -1:
-            if log.totalLines >= lineMax - 1:
-                break
-        # empty queue
+        # if days are infinite
+        if days == -1:
+            # if lines aren't infinite
+            if not lineMax == -1:
+                # break when lines overflow total lines
+                if log.totalLines >= lineMax - 1:
+                    break
         try:
             currentEvent = queue.get()
             if currentEvent:
@@ -164,6 +171,9 @@ def main(lineMax=50000, logfileName='ircsimul.log', writeStdOut=False, realTime=
                 if daycache != date.day:
                     log.writeDayChange(currentEvent.date)
                     daycache = date.day
+                    day += 1
+                    if days != -1 and day >= days:
+                        break
                 line = currentEvent.process(queue)
                 if line:
                     now = datetime.datetime.utcnow()
@@ -197,28 +207,37 @@ if __name__ == "__main__":
         sys.quit(1)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-l", "--lines", help="number of lines to be generated, -1 --> infinite lines", type=int)
     parser.add_argument("-a", "--activity", help="sets intrinsic message activity per day", type=int)
+    parser.add_argument("-d", "--days", help="number of days to generate, overwrites --lines", type=int)
+    parser.add_argument("-l", "--lines", help="number of lines to be generated, -1 --> infinite lines", type=int)
+    parser.add_argument("-m", "--metadata", help="prints metadata to file meta.log", action="store_true")
     parser.add_argument("-o", "--output", help="sets output file (if not given, logs to ircsimul.log)", type=str)
-    parser.add_argument("--stdout", help="toggles output to stdout", action="store_true")
-    parser.add_argument("--realtime", help="toggles output to stdout", action="store_true")
     parser.add_argument("--loginitpop", help="log initial population of channel, use Ctrl+C to quit", action="store_true")
     parser.add_argument("--debug", help="prints debug stuff", action="store_true")
-    parser.add_argument("-m", "--metadata", help="prints metadata to file meta.log", action="store_true")
+    parser.add_argument("--realtime", help="toggles output to stdout", action="store_true")
+    parser.add_argument("--stdout", help="toggles output to stdout", action="store_true")
     args = parser.parse_args()
 
     if args.lines:
         lineMax = args.lines
     else:
         lineMax = 50000
+
     if args.activity:
         helpers.messagesPerDay = args.activity
+
     if args.debug:
         helpers.debug = args.debug
+
     if args.output:
         logfileName = args.output
     else:
         logfileName = os.path.join(os.path.dirname(__file__), 'ircsimul.log')
 
+    if args.days:
+        days = args.days
+    else:
+        days = -1
+
     main(lineMax=lineMax, logfileName=logfileName, writeStdOut=args.stdout, realTime=args.realtime,
-        logInitialPopulation=args.loginitpop, meta=args.metadata)
+        logInitialPopulation=args.loginitpop, meta=args.metadata, days=days)
