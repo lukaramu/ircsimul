@@ -4,12 +4,14 @@ from random import random
 
 import helpers
 import userTypes
+from channel import nicksPerUser
 
 rejoinProbability = 0.7
 
 # cumulative
 userActionProbability = 0.01
 kickProbability = 0.002 + userActionProbability
+nickChangeProbability = 0.002 + kickProbability
 
 class Event(object):
     def __init__(self):
@@ -36,7 +38,6 @@ class JLQEvent(Event):
                                                self.user.nick,
                                                self.user.combinedUserAndHost)
 
-# NOW: make those generate too
 class KickEvent(Event):
     def __init__(self, date, kickee, kicker, reason, channel):
         self.date = date
@@ -46,8 +47,6 @@ class KickEvent(Event):
         self.channel = channel
 
     def process(self, queue):
-        if self.kickee == self.kicker:
-            helpers.debugPrint(self.kickee.nick + " kicked themselves!\n")
         if self.kickee.isOnline and self.kicker.isOnline:
             self.channel.setOffline(self.kickee)
             if random() < rejoinProbability:
@@ -124,18 +123,22 @@ class MessageEvent(Event):
 
             # create special events
             determineSpecialEvent = random()
-            if determineSpecialEvent < kickProbability:
-                if determineSpecialEvent < userActionProbability:
-                    # TODO: variable action text
-                    # user action event
-                    queue.put(UserActionEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()), self.user, "does action"))
+            if determineSpecialEvent < nickChangeProbability:
+                if determineSpecialEvent < kickProbability:
+                    if determineSpecialEvent < userActionProbability:
+                        # TODO: variable action text
+                        # user action event
+                        queue.put(UserActionEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()), self.user, "does action"))
+                    else:
+                        # kick event
+                        queue.put(KickEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()),
+                                            self.channel.selectOnlineUser(),
+                                            self.user,
+                                            self.user.markovGenerator.generateReason(),
+                                            self.channel))
                 else:
-                    # kick event
-                    queue.put(KickEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()),
-                                        self.channel.selectOnlineUser(),
-                                        self.user,
-                                        self.user.markovGenerator.generateReason(),
-                                        self.channel))
+                    # nick change event
+                    queue.put(NickChangeEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()), self.user))
         else:
             # put date of next message after next join
             if messageDate < self.user.nextJoin:
@@ -149,7 +152,6 @@ class MessageEvent(Event):
                                    True))
         return line
 
-# NOW: how to generate those?
 class UserActionEvent(Event):
     def __init__(self, date, user, action):
         self.date = date
@@ -159,3 +161,20 @@ class UserActionEvent(Event):
     def process(self, queue):
         if self.user.isOnline:
             return "{0}  * {1} {2}\n".format(self._generateTime(), self.user.nick, self.action)
+
+class NickChangeEvent(Event):
+    def __init__(self, date, user):
+        self.date = date
+        self.user = user
+
+    def process(self, queue):
+        # TODO: imposters?
+        helpers.debugPrint("Nick Change\n")
+        if self.user.isOnline:
+            oldNick = self.user.nick
+            for i, nick in enumerate(self.user.nicks):
+                if self.user.nick == nick:
+                    self.user.nick = self.user.nicks[(i+1) % nicksPerUser]
+                    return "{0} -!- {1} is now known as {2}\n".format(self._generateTime(), oldNick, self.user.nick)
+            else:
+                helpers.debugPrint("Didn't find nick in user.nicks\n")

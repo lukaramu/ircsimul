@@ -15,7 +15,6 @@ from log import Log
 from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, UserActionEvent
 
 # TODO: <starfire> loops are bad always put a base case!!
-# TODO: check if activity is correct
 
 # new features:
 # TODO: nick changes
