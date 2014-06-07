@@ -4,7 +4,7 @@ import datetime
 
 import helpers
 
-probabilities = [1.5 - abs(12-x) / 12 / 288 for x in range(0, 24)]
+probabilities = [1.20 - abs(12-x) / 12 for x in range(0, 24)]
 probabilitySum = sum(probabilities)
 
 messagesPerDay = 10000
