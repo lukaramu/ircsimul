@@ -95,8 +95,12 @@ timeSpan = [5, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 10, 10, 10, 10, 12, 15, 20, 3
 
 # END flags and sizes
 
+def debugPrint(text, debug):
+    if debug:
+        sys.stderr.write(text)
+
 def main(lineMax=200000, logfileName='ircsimul.log', writeStdOut=False, realTime=False, 
-    logInitialPopulation=False):
+    logInitialPopulation=False, debug=False):
     # create character maps for various text processing/writing functions
     helpers.makeTransMaps()
 
@@ -179,6 +183,7 @@ def main(lineMax=200000, logfileName='ircsimul.log', writeStdOut=False, realTime
                     now = datetime.datetime.utcnow()
                     if realTime and (date > now):
                         delta = date - datetime.datetime.utcnow()
+                        debugPrint(str(delta.total_seconds()) + '\n', debug)
                         time.sleep(delta.total_seconds())
                         log.write(line)
                         log.flush()
@@ -211,6 +216,7 @@ if __name__ == "__main__":
     parser.add_argument("--stdout", help="toggles output to stdout", action="store_true")
     parser.add_argument("--realtime", help="toggles output to stdout", action="store_true")
     parser.add_argument("--loginitpop", help="log initial population of channel, use Ctrl+C to quit", action="store_true")
+    parser.add_argument("--debug", help="prints debug stuff", action="store_true")
     args = parser.parse_args()
 
     # TODO: make this less messy
@@ -224,4 +230,4 @@ if __name__ == "__main__":
         logfileName = os.path.join(os.path.dirname(__file__), 'ircsimul.log')
 
     main(lineMax=lineMax, logfileName=logfileName, writeStdOut=args.stdout, realTime=args.realtime,
-        logInitialPopulation=args.loginitpop)
+        logInitialPopulation=args.loginitpop, debug=args.debug)
