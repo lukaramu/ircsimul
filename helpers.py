@@ -10,7 +10,7 @@ debug = False
 # create translation maps for modifying strings
 removePunctuationMap = str.maketrans('', '', string.punctuation)
 removePunctuationAndUpperCaseMap = str.maketrans(string.ascii_uppercase, string.ascii_lowercase, string.punctuation)
-noVocalMap = str.maketrans('', '', 'aeiou')
+noVocalMap = str.maketrans('', '', 'aeiouAEIOU')
 
 def debugPrint(text):
     if debug:
