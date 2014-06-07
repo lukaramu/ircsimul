@@ -7,7 +7,7 @@ import userTypes
 from channel import nicksPerUser
 
 rejoinProbability = 0.7
-multipleMessagesProbability = 0.03
+multipleMessagesProbability = 0.1
 
 # cumulative
 userActionProbability = 0.01
