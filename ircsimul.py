@@ -17,28 +17,23 @@ from log import Log
 import userTypes
 from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, UserActionEvent
 
-# TODO: event based system: http://pastebin.com/Nw854kcf
-# TODO: implement per-user event creation (e.g.)
-# TODO: make users not join every day
-# TODO: idlers???
-# TODO: make users not say something every day
-
-# TODO: x slaps y with around a bit with a large trout
 # TODO: <starfire> loops are bad always put a base case!!
 # TODO: check if activity is correct
-# TODO: instead of/additionally to truncating lines at commas, spread message out over seperate messages
-# might be cool: having them ping each other in "conversations" where only the last N messages of the person they are pinging are used in the generator so the conversation is "topical"
 
 # new features:
-# TODO: realtime output
 # TODO: nick changes
+# TODO: mentions
+# TODO: x slaps y with around a bit with a large trout
+# TODO: make users not join every day
+# might be cool: having them ping each other in "conversations" where only the last N messages of the person they are pinging are used in the generator so the conversation is "topical"
+# TODO: instead of/additionally to truncating lines at commas, spread message out over seperate messages
 # TODO: channel modes (o and b)
 # TODO: topics
 # TODO: bans
 # TODO: notices
-# TODO: mentions
 # TODO: urls
 # TODO: log metadata (user activity & preferences)
+# TODO: idlers???
 
 # TODO: make them say hi sometimes?
 # TODO: make kicks have an internal reason
@@ -74,6 +69,7 @@ minOnline = 5
 minOffline = 5
 initialPopulation = 10
 
+# DELETE
 # possibility that a user quits instead of just leaving
 # TODO: make consistent among user (e.g. User value)
 quitProbability = 0.75
@@ -99,25 +95,7 @@ timeSpan = [5, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 10, 10, 10, 10, 12, 15, 20, 3
 
 # END flags and sizes
 
-# TODO: move flavouring back to MessageEvent
-def flavourText(text, user):
-    # returns text with 'flavour'
-    if user.userType == userTypes.lowercaseNoPunctuation:
-        return text.translate(helpers.removePunctuationAndUpperCaseMap)
-    elif user.userType == userTypes.standard:
-        return text
-    elif user.userType == userTypes.lowercase:
-        return text.lower()
-    elif user.userType == userTypes.uppercase:
-        return text.upper()
-    elif user.userType == userTypes.noPunctuation:
-        return text.translate(helpers.removePunctuationMap)
-    elif user.userType == userTypes.txtSpeech:
-        return text.translate(helpers.noVocalMap)
-    else:
-        return "ERROR: false flavourType assigned"
-
-def main(lineMax=5000, logfileName='ircsimul.log', writeStdOut=False, realTime=False, 
+def main(lineMax=200000, logfileName='ircsimul.log', writeStdOut=False, realTime=False, 
     logInitialPopulation=False):
     # create character maps for various text processing/writing functions
     helpers.makeTransMaps()
@@ -146,14 +124,39 @@ def main(lineMax=5000, logfileName='ircsimul.log', writeStdOut=False, realTime=F
     # write opening of log
     log.writeLogOpening(date)
 
-    # populates channel with initialPopulation users
+    # create list of users that should be put online
+    toBePutOneline = []
+    # check if mean online hour is within five hours of current time
+    # if so, make user join
+    for user in channel.users:
+        timeDifference = (user.meanHour - date.hour) % 24
+        if timeDifference < 6 or timeDifference > 18:
+            toBePutOneline.append(user)
+
+    # populate channel with users in toBePutOnline
     if logInitialPopulation:
-        for i in range(0, initialPopulation):
-            event = JoinEvent(date, channel.selectOfflineUser(), channel)
+        for user in channel.users:
+            # create JoinEvent for this moment for users that are to be put online right now
+            if user in toBePutOneline:
+                event = JoinEvent(date, user, channel)
+            # creates JoinEvents for offline users
+            else:
+                event = JoinEvent(user.getJoinDate(date), user, channel)
             queue.put(event)
+    # same as 'if' case, but without creating JoinEvents for users from beginning
     else:
-        for i in range(0, initialPopulation):
-            channel.setOnline(channel.selectOfflineUser())
+        for user in channel.users:
+            if user in toBePutOneline:
+                channel.setOnline(user)
+                if user.isQuitter:
+                    event = QuitEvent(user.getQuitDate(date), user, user.markovGenerator.generateReason(), channel)
+                else:
+                    event = LeaveEvent(user.getQuitDate(date), user, user.markovGenerator.generateReason(), channel)
+            else:
+                event = JoinEvent(user.getJoinDate(date), user, channel)
+            queue.put(event)
+    for user in channel.users:
+        queue.put(MessageEvent(user.getMessageDate(date), user, helpers.flavourText(user.markovGenerator.generateMessage(), user), True))
 
     # bulk of messages
     currentEvent = None
@@ -163,69 +166,30 @@ def main(lineMax=5000, logfileName='ircsimul.log', writeStdOut=False, realTime=F
                 break
         # empty queue
         try:
-            while not queue.empty():
-                currentEvent = queue.get()
-                if currentEvent:
-                    line = currentEvent.process()
-                    if line:
-                        now = datetime.datetime.utcnow()
-                        if realTime and (currentEvent.date > now):
-                            delta = currentEvent.date - datetime.datetime.utcnow()
-                            time.sleep(delta.total_seconds())
-                            log.write(line)
-                            log.flush()
-                        else:
-                            log.write(line)
-                else: break
+            currentEvent = queue.get()
+            if currentEvent:
+                # check if day changed, if so, write day changed message
+                # TODO: make this event based
+                date = currentEvent.date
+                if daycache != date.day:
+                    log.writeDayChange(currentEvent.date)
+                    daycache = date.day
+                line = currentEvent.process(queue)
+                if line:
+                    now = datetime.datetime.utcnow()
+                    if realTime and (date > now):
+                        delta = date - datetime.datetime.utcnow()
+                        time.sleep(delta.total_seconds())
+                        log.write(line)
+                        log.flush()
+                    else:
+                        log.write(line)
+            else:
+                sys.stderr.write("No event in queue :| (This *really* shouldn't happen)\n")
+                sys.exit(1)
         except Empty:
-            pass
-
-        # check if day changed, if so, write day changed message
-        # TODO: make this event based
-        if daycache != date.day:
-            log.writeDayChange(date)
-            daycache = date.day
-
-        # generate line
-        determineType = random()
-        if determineType > joinPartProbability:
-            # user message
-            user = channel.selectOnlineUser()
-            event = MessageEvent(date, user, flavourText(markovGenerator.generateMessage(), user))
-        elif determineType > actionProbability:
-            # random join/part event
-            user = channel.selectUser()
-            if user in channel.online:
-                if random() < quitProbability:
-                    event = QuitEvent(date, user, markovGenerator.generateReason(), channel)
-                else:
-                    event = LeaveEvent(date, user, markovGenerator.generateReason(), channel)
-            else:
-                event = JoinEvent(date, user, channel)
-        elif determineType > kickProbability:
-            # user action
-            # TODO: implement variable user action text
-            event = UserActionEvent(date, channel.selectOnlineUser(), "does action")
-        else:
-            # kick event
-            event = KickEvent(date, channel.selectOnlineUser(), channel.selectOnlineUser(), markovGenerator.generateReason(), channel)
-        queue.put(event)
-
-        # makes sure some amount of peeps are online or offline
-        # TODO: check if population checks could be made obsolete by having the next join/parts already cached
-        # TODO: move to channel class later?
-        if channel.onlineUsers < minOnline:
-            event = JoinEvent(date, channel.selectOfflineUser(), channel)
-            queue.put(event)
-        if (channel.userCount - channel.onlineUsers) < minOffline:
-            if random() < quitProbability:
-                event = QuitEvent(date, user, markovGenerator.generateReason(), channel)
-            else:
-                event = LeaveEvent(date, user, markovGenerator.generateReason(), channel)
-            queue.put(event)
-
-        # TODO: is += possible here?
-        date = date + datetime.timedelta(seconds = choice(timeSpan) * (sin((date.hour) / 24 * pi) / 2 + 0.7))
+            sys.stderr.write("No event in queue :| (This *really* shouldn't happen)\n")
+            sys.exit(1)
 
     # write log closing message
     log.writeLogClosing(date)
