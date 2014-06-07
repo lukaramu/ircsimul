@@ -103,7 +103,6 @@ class Channel(object):
                 userNicks.append(nicks.pop())
 
             # choose user type
-            # TODO: beautify (i.e. create a function for this type of selection? only if faster)
             determineType = random()
             if determineType < lowercaseNoPunctuationUserProbability:
                 userType = userTypes.lowercaseNoPunctuation
@@ -127,11 +126,9 @@ class Channel(object):
             self.users.append(user)
             self.offline.append(user)
 
-        # TODO: move to channel class later
         self.onlineUsers = 0
 
         # sums of activity numbers for weighted choice
-        # TODO: move to channel class later (might not be necessary b/c of rework w/ events and such)
         self.activityTotal = sum(user.activity for user in self.users)
         self.offlineActivityTotal = self.activityTotal
         self.onlineActivityTotal = 0

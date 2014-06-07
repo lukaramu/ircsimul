@@ -1,10 +1,8 @@
 import argparse
 import datetime
-import logging
 import cProfile
 import sys
 import os
-from math import sin, pi
 from random import choice, random
 from queue import PriorityQueue, Empty
 import time
@@ -14,7 +12,6 @@ import markov
 from channel import Channel
 from user import User
 from log import Log
-import userTypes
 from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, UserActionEvent
 
 # TODO: <starfire> loops are bad always put a base case!!
@@ -56,8 +53,6 @@ from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, Us
 # liking to kick
 # being kicked often
 
-# logging.basicConfig(filename='debug.log', level=logging.DEBUG)
-
 # START flags and sizes
 # TODO: Make some of them command line arguments?
 sourcefileName = os.path.join(os.path.dirname(__file__), 'ZARATHUSTRA.txt')
@@ -65,14 +60,6 @@ reasonsfileName = os.path.join(os.path.dirname(__file__), 'reasons.txt')
 channelName = 'channel'
 
 initialUserCount = 40                  # make sure this is less number of possible users
-minOnline = 5
-minOffline = 5
-initialPopulation = 10
-
-# DELETE
-# possibility that a user quits instead of just leaving
-# TODO: make consistent among user (e.g. User value)
-quitProbability = 0.75
 
 # cumulative, so actionProbability is 0.008 in reality
 kickProbability = 0.002
@@ -88,22 +75,10 @@ useUppercase = 0.2
 useNoPunctuation = 0.99
 useTxtSpeech = 0.5
 
-# TODO: create a function that simulates this behavior with fluid numbers after being given a general activity.
-# TODO: tweak activity: currently 1,000,000 lines go from May 29 2014 to Apr 05 2023
-# possible timedeltas after messages
-timeSpan = [5, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 10, 10, 10, 10, 12, 15, 20, 30, 30, 30, 20, 60, 120, 300]
-
 # END flags and sizes
 
-def debugPrint(text, debug):
-    if debug:
-        sys.stderr.write(text)
-
-def main(lineMax=200000, logfileName='ircsimul.log', writeStdOut=False, realTime=False, 
-    logInitialPopulation=False, debug=False):
-    # create character maps for various text processing/writing functions
-    helpers.makeTransMaps()
-
+def main(lineMax=50000, logfileName='ircsimul.log', writeStdOut=False, realTime=False, 
+    logInitialPopulation=False):
     # load up markov generator
     markovGenerator = markov.MarkovGenerator(sourcefileName, reasonsfileName)
 
@@ -160,7 +135,7 @@ def main(lineMax=200000, logfileName='ircsimul.log', writeStdOut=False, realTime
                 event = JoinEvent(user.getJoinDate(date), user, channel)
             queue.put(event)
     for user in channel.users:
-        queue.put(MessageEvent(user.getMessageDate(date), user, helpers.flavourText(user.markovGenerator.generateMessage(), user), True))
+        queue.put(MessageEvent(user.getMessageDate(date), user, helpers.flavourText(user.markovGenerator.generateMessage(), user), channel, True))
 
     # bulk of messages
     currentEvent = None
@@ -173,7 +148,7 @@ def main(lineMax=200000, logfileName='ircsimul.log', writeStdOut=False, realTime
             currentEvent = queue.get()
             if currentEvent:
                 # check if day changed, if so, write day changed message
-                # TODO: make this event based
+                # TODO: make this event based?
                 date = currentEvent.date
                 if daycache != date.day:
                     log.writeDayChange(currentEvent.date)
@@ -183,7 +158,7 @@ def main(lineMax=200000, logfileName='ircsimul.log', writeStdOut=False, realTime
                     now = datetime.datetime.utcnow()
                     if realTime and (date > now):
                         delta = date - datetime.datetime.utcnow()
-                        debugPrint(str(delta.total_seconds()) + '\n', debug)
+                        helpers.debugPrint(str(delta.total_seconds()) + '\n')
                         time.sleep(delta.total_seconds())
                         log.write(line)
                         log.flush()
@@ -212,6 +187,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--lines", help="number of lines to be generated, -1 --> infinite lines", type=int)
+    parser.add_argument("-a", "--activity", help="sets intrinsic message activity per day", type=int)
     parser.add_argument("-o", "--output", help="sets output file (if not given, logs to ircsimul.log)", type=str)
     parser.add_argument("--stdout", help="toggles output to stdout", action="store_true")
     parser.add_argument("--realtime", help="toggles output to stdout", action="store_true")
@@ -219,15 +195,18 @@ if __name__ == "__main__":
     parser.add_argument("--debug", help="prints debug stuff", action="store_true")
     args = parser.parse_args()
 
-    # TODO: make this less messy
     if args.lines:
         lineMax = args.lines
     else:
         lineMax = 50000
+    if args.activity:
+        helpers.messagesPerDay = args.activity
+    if args.debug:
+        helpers.debug = args.debug
     if args.output:
         logfileName = args.output
     else:
         logfileName = os.path.join(os.path.dirname(__file__), 'ircsimul.log')
 
     main(lineMax=lineMax, logfileName=logfileName, writeStdOut=args.stdout, realTime=args.realtime,
-        logInitialPopulation=args.loginitpop, debug=args.debug)
+        logInitialPopulation=args.loginitpop)

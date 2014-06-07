@@ -7,6 +7,10 @@ import userTypes
 
 rejoinProbability = 0.7
 
+# cumulative
+userActionProbability = 0.01
+kickProbability = 0.002 + userActionProbability
+
 class Event(object):
     def __init__(self):
         pass
@@ -41,15 +45,18 @@ class KickEvent(Event):
         self.reason = reason
         self.channel = channel
 
-    # NOW:
     def process(self, queue):
+        if self.kickee == self.kicker:
+            helpers.debugPrint(self.kickee.nick + " kicked themselves!\n")
         if self.kickee.isOnline and self.kicker.isOnline:
             self.channel.setOffline(self.kickee)
             if random() < rejoinProbability:
-                event = JoinEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()), self.user, self.channel)
+                # set nextJoin in User
+                rejoinTime = self.date + datetime.timedelta(seconds = 5 + 2 * random())
+                self.kickee.nextJoin = rejoinTime
+                event = JoinEvent(rejoinTime, self.kickee, self.channel)
             else:
-                # NOW: create user function that returns a join time (just time, not date)
-                event = JoinEvent(self.user.getJoinDate(self.date), self.user, self.channel)
+                event = JoinEvent(self.kickee.getJoinDate(self.date), self.kickee, self.channel)
             queue.put(event)
             return "{0} -!- {1} was kicked from #{2} by {3} [{4}]\n".format(self._generateTime(), 
                                                                             self.kickee.nick, 
@@ -78,7 +85,6 @@ class QuitEvent(JLQEvent):
         self.reason = reason
         self.channel = channel
 
-    # NOW:
     def process(self, queue):
         if self.user.isOnline:
             self.channel.setOffline(self.user)
@@ -91,7 +97,6 @@ class JoinEvent(JLQEvent):
         self.user = user
         self.channel = channel
 
-    # NOW:
     def process(self, queue):
         if not self.user.isOnline:
             self.channel.setOnline(self.user)
@@ -103,26 +108,44 @@ class JoinEvent(JLQEvent):
             return "{0}joined #{1}\n".format(self._generateJLQBeginning(), self.channel.name)
 
 class MessageEvent(Event):
-    def __init__(self, date, user, message, generateNewMessage):
+    def __init__(self, date, user, message, channel, generateNewMessage):
         self.date = date
         self.user = user
         self.message = message
+        self.channel = channel
         self.generateNewMessage = generateNewMessage
 
-    # NOW: put in optimization
     def process(self, queue):
         messageDate = self.user.getMessageDate(self.date)
         line = None
         if self.user.isOnline:
+            # create line
             line = "{0} < {1}> {2}\n".format(self._generateTime(), self.user.nick, self.message)
-        else: 
+
+            # create special events
+            determineSpecialEvent = random()
+            if determineSpecialEvent < kickProbability:
+                if determineSpecialEvent < userActionProbability:
+                    # TODO: variable action text
+                    # user action event
+                    queue.put(UserActionEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()), self.user, "does action"))
+                else:
+                    # kick event
+                    queue.put(KickEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()),
+                                        self.channel.selectOnlineUser(),
+                                        self.user,
+                                        self.user.markovGenerator.generateReason(),
+                                        self.channel))
+        else:
+            # put date of next message after next join
             if messageDate < self.user.nextJoin:
                 intervalNumber = int((self.user.nextJoin - messageDate).total_seconds() / self.user.messageInterval)+1
                 messageDate += datetime.timedelta(seconds = intervalNumber * self.user.messageInterval)
         if self.generateNewMessage:
-            queue.put(MessageEvent(messageDate, 
+            queue.put(MessageEvent(messageDate,
                                    self.user,
-                                   helpers.flavourText(self.user.markovGenerator.generateMessage(), self.user), 
+                                   helpers.flavourText(self.user.markovGenerator.generateMessage(), self.user),
+                                   self.channel,
                                    True))
         return line
 
@@ -133,6 +156,6 @@ class UserActionEvent(Event):
         self.user = user
         self.action = action
 
-    def process(self):
+    def process(self, queue):
         if self.user.isOnline:
             return "{0}  * {1} {2}\n".format(self._generateTime(), self.user.nick, self.action)

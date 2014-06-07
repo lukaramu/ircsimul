@@ -3,7 +3,7 @@ from random import choice
 import helpers
 
 # list with symbols that end a sentence
-EOS = ['.', '?', '!', ':', '"', ':', ',', ';']
+EOS = ['.', '?', '!', ':', '"', ':', ',', ';', '-']
 
 class MarkovGenerator(object):
     def __init__(self, messageFilename, reasonsFilename):

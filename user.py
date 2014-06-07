@@ -2,6 +2,8 @@ from random import random, uniform, choice
 import sys
 import datetime
 
+import helpers
+
 probabilities = [1.5 - abs(12-x) / 12 / 288 for x in range(0, 24)]
 probabilitySum = sum(probabilities)
 
@@ -27,7 +29,7 @@ class User(object):
 
         self.nick = nicks[0]
         self.combinedUserAndHost = '@'.join([username, hostmask])
-        self.messageInterval = 86400 / self.activity / messagesPerDay
+        self.messageInterval = 86400 / self.activity / helpers.messagesPerDay
 
         rand = uniform(0, probabilitySum)
         upto = 0

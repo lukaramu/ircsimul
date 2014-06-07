@@ -1,15 +1,19 @@
 import string
+import sys
 
 import userTypes
 
-def makeTransMaps():
-    # creates translation maps for modifying string
-    global removePunctuationMap
-    removePunctuationMap = str.maketrans('', '', string.punctuation)
-    global removePunctuationAndUpperCaseMap
-    removePunctuationAndUpperCaseMap = str.maketrans(string.ascii_uppercase, string.ascii_lowercase, string.punctuation)
-    global noVocalMap
-    noVocalMap = str.maketrans('', '', 'aeiou')
+messagesPerDay = 5000
+debug = False
+
+# create translation maps for modifying strings
+removePunctuationMap = str.maketrans('', '', string.punctuation)
+removePunctuationAndUpperCaseMap = str.maketrans(string.ascii_uppercase, string.ascii_lowercase, string.punctuation)
+noVocalMap = str.maketrans('', '', 'aeiou')
+
+def debugPrint(text):
+    if debug:
+        sys.stderr.write(text)
 
 def splitFileToList(filename):
     # split text in file to list of words
