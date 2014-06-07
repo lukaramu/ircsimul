@@ -17,12 +17,10 @@ from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, Us
 # TODO: <starfire> loops are bad always put a base case!!
 
 # new features:
-# TODO: nick changes
 # TODO: mentions
 # TODO: x slaps y with around a bit with a large trout
 # TODO: make users not join every day
 # might be cool: having them ping each other in "conversations" where only the last N messages of the person they are pinging are used in the generator so the conversation is "topical"
-# TODO: instead of/additionally to truncating lines at commas, spread message out over seperate messages
 # TODO: channel modes (o and b)
 # TODO: topics
 # TODO: bans

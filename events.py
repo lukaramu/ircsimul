@@ -7,6 +7,7 @@ import userTypes
 from channel import nicksPerUser
 
 rejoinProbability = 0.7
+multipleMessagesProbability = 0.01
 
 # cumulative
 userActionProbability = 0.01
@@ -145,11 +146,26 @@ class MessageEvent(Event):
                 intervalNumber = int((self.user.nextJoin - messageDate).total_seconds() / self.user.messageInterval)+1
                 messageDate += datetime.timedelta(seconds = intervalNumber * self.user.messageInterval)
         if self.generateNewMessage:
-            queue.put(MessageEvent(messageDate,
-                                   self.user,
-                                   helpers.flavourText(self.user.markovGenerator.generateMessage(), self.user),
-                                   self.channel,
-                                   True))
+            if random() > multipleMessagesProbability:
+                queue.put(MessageEvent(messageDate,
+                                       self.user,
+                                       helpers.flavourText(self.user.markovGenerator.generateMessage(), self.user),
+                                       self.channel,
+                                       True))
+            else:
+                messages = self.user.markovGenerator.generateMessages()
+                lenght = len(messages) - 1
+                helpers.debugPrint("Generating {0} messages at once\n".format(str(lenght + 1)))
+                for i, message in enumerate(messages):
+                    if i == lenght:
+                        generateMore = True
+                    else:
+                        generateMore = False
+                    queue.put(MessageEvent(messageDate + datetime.timedelta(seconds=i * 2 + 0.5 * random()),
+                                           self.user,
+                                           helpers.flavourText(message, self.user),
+                                           self.channel,
+                                           generateMore))
         return line
 
 class UserActionEvent(Event):

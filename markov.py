@@ -1,9 +1,12 @@
 from random import choice
+import re
 
 import helpers
 
 # list with symbols that end a sentence
-EOS = ['.', '?', '!', ':', '"', ':', ',', ';', '-']
+EOS = ['.', '?', '!', ':', '"']
+EOL = [',', ';', '-']
+EOSL = EOS + EOL
 
 class MarkovGenerator(object):
     def __init__(self, messageFilename, reasonsFilename):
@@ -30,7 +33,7 @@ class MarkovGenerator(object):
         # generate possible line starts (if the first letter is uppercase)
         return [key for key in dictionary.keys() if key[0][0].isupper()]
 
-    def _generateSentence(self, dictionary, startList):
+    def _generateSentence(self, dictionary, startList, endList):
         # generates message sentence
         key = choice(startList)
         sentenceList = []
@@ -44,13 +47,16 @@ class MarkovGenerator(object):
             except KeyError:
                 return ' '.join(sentenceList)
             sentenceList.append(third)
-            if third[-1] in EOS:
+            if third[-1] in endList:
                 return ' '.join(sentenceList)
             key = (second, third)
             first, second = key
 
+    def generateMessages(self):
+        return [i for i in re.split("[,;\-]", self._generateSentence(self.messageDict, self.messageStartList, EOS)) if i]
+
     def generateMessage(self):
-        return self._generateSentence(self.messageDict, self.messageStartList)
+        return self._generateSentence(self.messageDict, self.messageStartList, EOSL)
 
     def generateReason(self):
-        return self._generateSentence(self.reasonsDict, self.reasonsStartList)
+        return self._generateSentence(self.reasonsDict, self.reasonsStartList, EOSL)
