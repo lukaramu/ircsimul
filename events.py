@@ -11,7 +11,7 @@ rejoinProbability = 0.7
 # cumulative
 userActionProbability = 0.01
 kickProbability = 0.002 + userActionProbability
-nickChangeProbability = 0.002 + kickProbability
+nickChangeProbability = 0.0005 + kickProbability
 
 class Event(object):
     def __init__(self):
