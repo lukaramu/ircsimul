@@ -29,26 +29,18 @@ from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, Us
 # TODO: bans
 # TODO: notices
 # TODO: urls
-# TODO: log metadata (user activity & preferences)
 # TODO: idlers???
 
 # TODO: make them say hi sometimes?
 # TODO: make kicks have an internal reason
-# TODO: extract pprinted metadata
 
 # TODO: different nicks, different behaviour (longshot):
-# average word count (if possible)
-# average word length (if possible)
-# multiple exclamation marks !!!!!!!!!!!!!!
-# times dumbfounded (???)
 # aloof (doesn't mention often)
-# apostrophe uses?
 # negativity
 # questions asked
 # relationships
 # variance in mentions
 # times mentions i.e. popular
-# many times in a row
 # changing nicks often
 # liking to kick
 # being kicked often
@@ -57,6 +49,7 @@ from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, Us
 # TODO: Make some of them command line arguments?
 sourcefileName = os.path.join(os.path.dirname(__file__), 'ZARATHUSTRA.txt')
 reasonsfileName = os.path.join(os.path.dirname(__file__), 'reasons.txt')
+metafileName = os.path.join(os.path.dirname(__file__), 'meta.log')
 channelName = 'channel'
 
 initialUserCount = 40                  # make sure this is less number of possible users
@@ -77,13 +70,31 @@ useTxtSpeech = 0.5
 
 # END flags and sizes
 
+def generateMetaFile(channel):
+    metaFile = open(metafileName, 'w')
+    for user in channel.users:
+        metaFile.write("\n".join([str(user.ID), 
+                                  "    nicks:     {0}".format(', '.join(user.nicks)),
+                                  "    user:      {0}".format(user.username),
+                                  "    hostmask:  {0}".format(user.hostmask),
+                                  "    activity:  {0}".format(str(user.activity)),
+                                  "    userType:  {0}".format(str(user.userType)),
+                                  "    isQuitter: {0}".format(str(user.isQuitter)),
+                                  "    meanHour:  {0}".format(str(user.meanHour)),
+                                  ""]))
+    metaFile.close()
+
 def main(lineMax=50000, logfileName='ircsimul.log', writeStdOut=False, realTime=False, 
-    logInitialPopulation=False):
+    logInitialPopulation=False, meta=False):
     # load up markov generator
     markovGenerator = markov.MarkovGenerator(sourcefileName, reasonsfileName)
 
     # load channel
     channel = Channel(channelName, markovGenerator, initialUserCount)
+
+    # print metadata to file:
+    if meta:
+        generateMetaFile(channel)
 
     # open log
     fileObjectList = []
@@ -193,6 +204,7 @@ if __name__ == "__main__":
     parser.add_argument("--realtime", help="toggles output to stdout", action="store_true")
     parser.add_argument("--loginitpop", help="log initial population of channel, use Ctrl+C to quit", action="store_true")
     parser.add_argument("--debug", help="prints debug stuff", action="store_true")
+    parser.add_argument("-m", "--metadata", help="prints metadata to file meta.log", action="store_true")
     args = parser.parse_args()
 
     if args.lines:
@@ -209,4 +221,4 @@ if __name__ == "__main__":
         logfileName = os.path.join(os.path.dirname(__file__), 'ircsimul.log')
 
     main(lineMax=lineMax, logfileName=logfileName, writeStdOut=args.stdout, realTime=args.realtime,
-        logInitialPopulation=args.loginitpop)
+        logInitialPopulation=args.loginitpop, meta=args.metadata)
