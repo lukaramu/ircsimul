@@ -49,21 +49,7 @@ reasonsfileName = os.path.join(os.path.dirname(__file__), 'reasons.txt')
 metafileName = os.path.join(os.path.dirname(__file__), 'meta.log')
 channelName = 'channel'
 
-initialUserCount = 40                  # make sure this is less number of possible users
-
-# cumulative, so actionProbability is 0.008 in reality
-kickProbability = 0.002
-actionProbability = 0.008 + kickProbability
-joinPartProbability = 0.04 + actionProbability
-# difference to 1: normal message
-
-# probability a user type shows his 'non-standard' behavior
-# TODO: make functional
-useLowercaseNoPunctuation = 0.99
-useLowercase = 0.99
-useUppercase = 0.2
-useNoPunctuation = 0.99
-useTxtSpeech = 0.5
+initialUserCount = 40
 
 # END flags and sizes
 
@@ -81,7 +67,7 @@ def generateMetaFile(channel):
                                   ""]))
     metaFile.close()
 
-def main(lineMax=50000, logfileName='ircsimul.log', writeStdOut=False, realTime=False, 
+def main(lineMax=200000, logfileName='ircsimul.log', writeStdOut=False, realTime=False, 
     logInitialPopulation=False, meta=False, days=-1):
     # load up markov generator
     markovGenerator = markov.MarkovGenerator(sourcefileName, reasonsfileName)
@@ -209,8 +195,8 @@ if __name__ == "__main__":
     parser.add_argument("-l", "--lines", help="number of lines to be generated, -1 --> infinite lines", type=int)
     parser.add_argument("-m", "--metadata", help="prints metadata to file meta.log", action="store_true")
     parser.add_argument("-o", "--output", help="sets output file (if not given, logs to ircsimul.log)", type=str)
-    parser.add_argument("--loginitpop", help="log initial population of channel, use Ctrl+C to quit", action="store_true")
     parser.add_argument("--debug", help="prints debug stuff", action="store_true")
+    parser.add_argument("--loginitpop", help="log initial population of channel, use Ctrl+C to quit", action="store_true")
     parser.add_argument("--realtime", help="toggles output to stdout", action="store_true")
     parser.add_argument("--stdout", help="toggles output to stdout", action="store_true")
     args = parser.parse_args()

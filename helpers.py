@@ -1,5 +1,6 @@
 import string
 import sys
+from random import random
 
 import userTypes
 
@@ -24,17 +25,20 @@ def splitFileToList(filename):
 
 def flavourText(text, user):
     # returns text with 'flavour'
-    if user.userType == userTypes.lowercaseNoPunctuation:
-        return text.translate(removePunctuationAndUpperCaseMap)
-    elif user.userType == userTypes.standard:
-        return text
-    elif user.userType == userTypes.lowercase:
-        return text.lower()
-    elif user.userType == userTypes.uppercase:
-        return text.upper()
-    elif user.userType == userTypes.noPunctuation:
-        return text.translate(removePunctuationMap)
-    elif user.userType == userTypes.txtSpeech:
-        return text.translate(noVocalMap)
+    if random() < userTypes.useProbabilities[user.userType]:
+        if user.userType == userTypes.lowercaseNoPunctuation:
+            return text.translate(removePunctuationAndUpperCaseMap)
+        elif user.userType == userTypes.standard:
+            return text
+        elif user.userType == userTypes.lowercase:
+            return text.lower()
+        elif user.userType == userTypes.uppercase:
+            return text.upper()
+        elif user.userType == userTypes.noPunctuation:
+            return text.translate(removePunctuationMap)
+        elif user.userType == userTypes.txtSpeech:
+            return text.translate(noVocalMap)
+        else:
+            return text
     else:
         return "ERROR: false flavourType assigned"

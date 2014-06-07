@@ -1,4 +1,4 @@
-from random import random, uniform, choice
+from random import random, uniform
 import sys
 import datetime
 
@@ -47,10 +47,8 @@ class User(object):
             sys.stderr.write("Fell through when generating join/quit hours! (This shouldn't happen)\n")
 
     def getJoinDate(self, date):
-        joinTime = datetime.time(choice([(self.joiningHour - 1) % 24, self.joiningHour]), 
-                                 choice(list(range(60))),
-                                 choice(list(range(60))))
-        self.nextJoin = datetime.datetime.combine(date.date(), joinTime)
+        offset = datetime.timedelta(seconds=3600*(self.joiningHour + 2*random() - 1))
+        self.nextJoin = datetime.datetime.combine(date.date(), datetime.time()) + offset
         if self.nextJoin < date:
             self.nextJoin += datetime.timedelta(days=1)
             return self.nextJoin
@@ -58,10 +56,8 @@ class User(object):
             return self.nextJoin
 
     def getQuitDate(self, date):
-        joinTime = datetime.time(choice([(self.quittingHour - 1) % 24, self.quittingHour]), 
-                                 choice(list(range(60))),
-                                 choice(list(range(60))))
-        self.nextQuit = datetime.datetime.combine(date.date(), joinTime)
+        offset = datetime.timedelta(seconds=3600*(self.quittingHour + 2*random() - 1))
+        self.nextQuit = datetime.datetime.combine(date.date(), datetime.time()) + offset
         if self.nextQuit < date:
             self.nextQuit += datetime.timedelta(days=1)
             return self.nextQuit
