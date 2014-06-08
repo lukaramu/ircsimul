@@ -1,9 +1,7 @@
 import datetime
-import sys
 from random import random
 
 import helpers
-import userTypes
 from channel import nicksPerUser
 
 rejoinProbability = 0.7
@@ -71,7 +69,6 @@ class LeaveEvent(JLQEvent):
         self.reason = reason
         self.channel = channel
 
-    # NOW:
     def process(self, queue):
         if self.user.isOnline:
             self.channel.setOffline(self.user)
@@ -210,3 +207,13 @@ class NickChangeEvent(Event):
                     return "{0} -!- {1} is now known as {2}\n".format(self._generateTime(), oldNick, self.user.nick)
             else:
                 helpers.debugPrint("Didn't find nick in user.nicks\n")
+
+class DayChangeEvent(Event):
+    def __init__(self, date, channel):
+        self.date = date
+        self.channel = channel
+
+    def process(self, queue):
+        queue.put(DayChangeEvent(self.date + datetime.timedelta(days=1), self.channel))
+        self.channel.day += 1
+        return "--- Day changed {0}\n".format(helpers.generateDate(self.date))

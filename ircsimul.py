@@ -12,7 +12,7 @@ import markov
 from channel import Channel
 from user import User
 from log import Log
-from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, UserActionEvent
+from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, UserActionEvent, DayChangeEvent
 
 # TODO: <starfire> loops are bad always put a base case!!
 
@@ -82,6 +82,9 @@ def main(lineMax=200000, logfileName='ircsimul.log', writeStdOut=False, realTime
         fileObjectList.append(sys.stdout)
     log = Log(fileObjectList)
 
+    # create queue
+    queue = PriorityQueue()
+
     # get current date
     date = datetime.datetime.utcnow()
     # if days are finite, reset time to 00:00:00
@@ -90,11 +93,11 @@ def main(lineMax=200000, logfileName='ircsimul.log', writeStdOut=False, realTime
 
     daycache = date.day
 
-    # create queue
-    queue = PriorityQueue()
+    # put first daychange into queue:
+    queue.put(DayChangeEvent(datetime.datetime.combine(date.date() + datetime.timedelta(days=1), datetime.time()), channel))
 
     # write opening of log
-    log.writeLogOpening(date)
+    log.write("--- Log opened {0}\n".format(helpers.generateFullTimeStamp(date)))
 
     # create list of users that should be put online
     toBePutOneline = []
@@ -144,15 +147,9 @@ def main(lineMax=200000, logfileName='ircsimul.log', writeStdOut=False, realTime
         try:
             currentEvent = queue.get()
             if currentEvent:
-                # check if day changed, if so, write day changed message
-                # TODO: make this event based?
                 date = currentEvent.date
-                if daycache != date.day:
-                    log.writeDayChange(currentEvent.date)
-                    daycache = date.day
-                    day += 1
-                    if days != -1 and day >= days:
-                        break
+                if days != -1 and channel.day >= days:
+                    break
                 line = currentEvent.process(queue)
                 if line:
                     now = datetime.datetime.utcnow()
@@ -172,7 +169,7 @@ def main(lineMax=200000, logfileName='ircsimul.log', writeStdOut=False, realTime
             sys.exit(1)
 
     # write log closing message
-    log.writeLogClosing(date)
+    log.write("--- Log closed {0}\n".format(helpers.generateFullTimeStamp(date)))
 
     # close log file
     log.lfs[0].close()

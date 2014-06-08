@@ -1,5 +1,4 @@
 from random import random, uniform
-import sys
 import datetime
 
 import helpers
@@ -44,7 +43,7 @@ class User(object):
             self.meanHour = 12
             self.joiningHour = 6
             self.quittingHour = 18
-            sys.stderr.write("Fell through when generating join/quit hours! (This shouldn't happen)\n")
+            helpers.debugPrint("Fell through when generating join/quit hours! (This shouldn't happen)\n")
 
     def getJoinDate(self, date):
         offset = datetime.timedelta(seconds=3600*(self.joiningHour + 2*random() - 1))

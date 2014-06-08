@@ -12,6 +12,9 @@ removePunctuationMap = str.maketrans('', '', string.punctuation)
 removePunctuationAndUpperCaseMap = str.maketrans(string.ascii_uppercase, string.ascii_lowercase, string.punctuation)
 noVocalMap = str.maketrans('', '', 'aeiouAEIOU')
 
+days = ['Mon', 'Tue', 'Wed', 'Thu','Fri', 'Sat', 'Sun']
+months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
 def debugPrint(text):
     if debug:
         sys.stderr.write(text)
@@ -43,3 +46,19 @@ def flavourText(text, user):
             return "ERROR: false flavourType assigned"
     else:
         return text.lstrip()
+
+def _zf(arg):
+    # zfills string to given argument
+    return str(arg).zfill(2)
+
+def generateFullTimeStamp(date):
+    return "{0} {1} {2} {3}:{4}:{5} {6}".format(days[date.weekday()],
+                                                months[date.month - 1],
+                                                _zf(date.day),
+                                                _zf(date.hour),
+                                                _zf(date.minute),
+                                                _zf(date.second),
+                                                str(date.year))
+
+def generateDate(date):
+    return ' '.join([days[date.weekday()], months[date.month - 1], _zf(date.day), str(date.year)])

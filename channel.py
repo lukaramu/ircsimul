@@ -1,4 +1,3 @@
-from math import sin, pi
 from random import choice, randint, random, uniform
 import os
 
@@ -29,6 +28,7 @@ class Channel(object):
         self.name = name
         self.userCount = userCount
         self.loadUsers(generator)
+        self.day = 0
 
     def _chooseNick(self, generator, startListLen):
         # returns nick from list of possible starting words removes punctuation from nick
