@@ -179,7 +179,7 @@ def profileMain():
 
 if __name__ == "__main__":
     if sys.version_info[0] < 3:
-        print("This script needs to be run on Python 3! (It's being tested on 3.3 currently)")
+        sys.stderr.write("This script needs to be run on Python 3! (It's being tested on 3.3 currently)")
         sys.quit(1)
 
     parser = argparse.ArgumentParser()

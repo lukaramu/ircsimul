@@ -54,7 +54,7 @@ def flavourText(text, user):
         elif user.userType == userTypes.txtSpeech:
             return text.translate(noVocalMap).lstrip()
         else:
-            debugPrint("ERROR: false flavourType assigned")
+            debugPrint("false flavourType assigned")
             return "ERROR: false flavourType assigned"
     else:
         return text.lstrip()

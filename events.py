@@ -162,7 +162,6 @@ class MessageEvent(Event):
             else:
                 messages = self.user.markovGenerator.generateMessages()
                 lenght = len(messages) - 1
-                helpers.debugPrint("Generating {0} messages at once\n".format(str(lenght + 1)))
                 for i, message in enumerate(messages):
                     if i == lenght:
                         generateMore = True
@@ -202,7 +201,6 @@ class NickChangeEvent(Event):
 
     def process(self, queue):
         # TODO: imposters?
-        helpers.debugPrint("Nick Change\n")
         if self.user.isOnline:
             oldNick = self.user.nick
             for i, nick in enumerate(self.user.nicks):
