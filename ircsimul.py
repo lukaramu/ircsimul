@@ -18,7 +18,6 @@ from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, Us
 
 # new features:
 # TODO: mentions (or rather pings)
-# TODO: x slaps y with around a bit with a large trout
 # TODO: make users not join every day
 # might be cool: having them ping each other in "conversations" where only the last N messages of the person they are pinging are used in the generator so the conversation is "topical"
 # TODO: channel modes (o and b) --> ops and bans 

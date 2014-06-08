@@ -11,6 +11,7 @@ multipleMessagesProbability = 0.1
 userActionProbability = 0.01
 kickProbability = 0.002 + userActionProbability
 nickChangeProbability = 0.0005 + kickProbability
+topicProbability = 0.001 + nickChangeProbability
 
 class Event(object):
     def __init__(self):
@@ -121,31 +122,36 @@ class MessageEvent(Event):
 
             # create special events
             determineSpecialEvent = random()
-            if determineSpecialEvent < nickChangeProbability:
-                if determineSpecialEvent < kickProbability:
-                    if determineSpecialEvent < userActionProbability:
-                        # TODO: variable action text
-                        # user action event
-                        actionDate = self.date + datetime.timedelta(seconds = 5 + 2 * random())
-                        if random() < 0.8:
-                            actionText = "likes {0} {1}".format(choice(helpers.prefixList), choice(helpers.nounList))
-                            queue.put(UserActionEvent(actionDate, self.user, actionText, None, self.channel))
-                        else:
-                            pingee = self.channel.selectOnlineUser()
-                            # make sure users doesn't slap themselves, because that is just dumb
-                            while pingee == self.user:
+            if determineSpecialEvent < topicProbability:
+                if determineSpecialEvent < nickChangeProbability:
+                    if determineSpecialEvent < kickProbability:
+                        if determineSpecialEvent < userActionProbability:
+                            # TODO: variable action text
+                            # user action event
+                            actionDate = self.date + datetime.timedelta(seconds = 5 + 2 * random())
+                            if random() < 0.8:
+                                actionText = "likes {0} {1}".format(choice(helpers.prefixList), choice(helpers.nounList))
+                                helpers.debugPrint("  * {0} {1}\n".format(self.user.nick, actionText))
+                                queue.put(UserActionEvent(actionDate, self.user, actionText, None, self.channel))
+                            else:
                                 pingee = self.channel.selectOnlineUser()
-                            queue.put(UserActionEvent(actionDate, self.user, "slaps {0} around a bit with a large trout".format(pingee.nick), pingee, self.channel))
+                                # make sure users doesn't slap themselves, because that is just dumb
+                                while pingee == self.user:
+                                    pingee = self.channel.selectOnlineUser()
+                                queue.put(UserActionEvent(actionDate, self.user, "slaps {0} around a bit with a large trout".format(pingee.nick), pingee, self.channel))
+                        else:
+                            # kick event
+                            queue.put(KickEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()),
+                                                self.channel.selectOnlineUser(),
+                                                self.user,
+                                                self.user.markovGenerator.generateReason(),
+                                                self.channel))
                     else:
-                        # kick event
-                        queue.put(KickEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()),
-                                            self.channel.selectOnlineUser(),
-                                            self.user,
-                                            self.user.markovGenerator.generateReason(),
-                                            self.channel))
+                        # nick change event
+                        queue.put(NickChangeEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()), self.user))
                 else:
-                    # nick change event
-                    queue.put(NickChangeEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()), self.user))
+                    # topic change event
+                    queue.put(TopicChangeEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()), self.user, self.channel, choice(helpers.topicList)))
         # if user is offline, put date of next message after next join
         else:
             if messageDate < self.user.nextJoin:
@@ -188,7 +194,7 @@ class UserActionEvent(Event):
         if self.pingee:
             queue.put(MessageEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()),
                                    self.pingee,
-                                   "mean!",
+                                   choice(["mean!", "rude!"]),
                                    self.channel,
                                    False))
         if self.user.isOnline:
@@ -219,3 +225,14 @@ class DayChangeEvent(Event):
         queue.put(DayChangeEvent(self.date + datetime.timedelta(days=1), self.channel))
         self.channel.day += 1
         return "--- Day changed {0}\n".format(helpers.generateDate(self.date))
+
+class TopicChangeEvent(Event):
+    def __init__(self, date, user, channel, topic):
+        self.date = date
+        self.user = user
+        self.channel = channel
+        self.topic = topic
+
+    def process(self, queue):
+        if self.user.isOnline:
+            return "{0} -!- {1} changed the topic of #{2} to: {3}".format(self._generateTime(), self.user.nick, self.channel.name, self.topic)
