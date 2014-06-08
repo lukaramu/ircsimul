@@ -17,13 +17,12 @@ from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, Us
 # TODO: <starfire> loops are bad always put a base case!!
 
 # new features:
-# TODO: mentions
+# TODO: mentions (or rather pings)
 # TODO: x slaps y with around a bit with a large trout
 # TODO: make users not join every day
 # might be cool: having them ping each other in "conversations" where only the last N messages of the person they are pinging are used in the generator so the conversation is "topical"
-# TODO: channel modes (o and b)
+# TODO: channel modes (o and b) --> ops and bans 
 # TODO: topics
-# TODO: bans
 # TODO: notices
 # TODO: urls
 # TODO: idlers???
@@ -48,9 +47,6 @@ sourcefileName = os.path.join(os.path.dirname(__file__), 'ZARATHUSTRA.txt')
 reasonsfileName = os.path.join(os.path.dirname(__file__), 'reasons.txt')
 metafileName = os.path.join(os.path.dirname(__file__), 'meta.log')
 channelName = 'channel'
-
-initialUserCount = 40
-
 # END flags and sizes
 
 def generateMetaFile(channel):
@@ -68,12 +64,12 @@ def generateMetaFile(channel):
     metaFile.close()
 
 def main(lineMax=200000, logfileName='ircsimul.log', writeStdOut=False, realTime=False, 
-    logInitialPopulation=False, meta=False, days=-1):
+    logInitialPopulation=False, meta=False, days=-1, users=40):
     # load up markov generator
     markovGenerator = markov.MarkovGenerator(sourcefileName, reasonsfileName)
 
     # load channel
-    channel = Channel(channelName, markovGenerator, initialUserCount)
+    channel = Channel(channelName, markovGenerator, users)
 
     # print metadata to file:
     if meta:
@@ -190,11 +186,12 @@ if __name__ == "__main__":
         sys.quit(1)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-a", "--activity", help="sets intrinsic message activity per day", type=int)
+    parser.add_argument("-a", "--activity", help="sets intrinsic message activity per day (default 5000)", type=int)
     parser.add_argument("-d", "--days", help="number of days to generate, overwrites --lines", type=int)
     parser.add_argument("-l", "--lines", help="number of lines to be generated, -1 --> infinite lines", type=int)
     parser.add_argument("-m", "--metadata", help="prints metadata to file meta.log", action="store_true")
     parser.add_argument("-o", "--output", help="sets output file (if not given, logs to ircsimul.log)", type=str)
+    parser.add_argument("-u", "--users", help="number of users", type=int)
     parser.add_argument("--debug", help="prints debug stuff", action="store_true")
     parser.add_argument("--loginitpop", help="log initial population of channel, use Ctrl+C to quit", action="store_true")
     parser.add_argument("--realtime", help="toggles output to stdout", action="store_true")
@@ -222,5 +219,8 @@ if __name__ == "__main__":
     else:
         days = -1
 
+    if args.users:
+        users = args.users
+
     main(lineMax=lineMax, logfileName=logfileName, writeStdOut=args.stdout, realTime=args.realtime,
-        logInitialPopulation=args.loginitpop, meta=args.metadata, days=days)
+        logInitialPopulation=args.loginitpop, meta=args.metadata, days=days, users=users)

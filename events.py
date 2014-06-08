@@ -129,7 +129,12 @@ class MessageEvent(Event):
                     if determineSpecialEvent < userActionProbability:
                         # TODO: variable action text
                         # user action event
-                        queue.put(UserActionEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()), self.user, "does action"))
+                        actionDate = self.date + datetime.timedelta(seconds = 5 + 2 * random())
+                        if random() < 0.8:
+                            queue.put(UserActionEvent(actionDate, self.user, "does action", None, self.channel))
+                        else:
+                            pingee = self.channel.selectOnlineUser()
+                            queue.put(UserActionEvent(actionDate, self.user, "slaps {0} around a bit with a large trout".format(pingee.nick), pingee, self.channel))
                     else:
                         # kick event
                         queue.put(KickEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()),
@@ -140,11 +145,12 @@ class MessageEvent(Event):
                 else:
                     # nick change event
                     queue.put(NickChangeEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()), self.user))
+        # if user is offline, put date of next message after next join
         else:
-            # put date of next message after next join
             if messageDate < self.user.nextJoin:
                 intervalNumber = int((self.user.nextJoin - messageDate).total_seconds() / self.user.messageInterval)+1
                 messageDate += datetime.timedelta(seconds = intervalNumber * self.user.messageInterval)
+        # generate new message
         if self.generateNewMessage:
             if random() > multipleMessagesProbability:
                 queue.put(MessageEvent(messageDate,
@@ -171,12 +177,20 @@ class MessageEvent(Event):
         return line
 
 class UserActionEvent(Event):
-    def __init__(self, date, user, action):
+    def __init__(self, date, user, action, pingee, channel):
         self.date = date
         self.user = user
         self.action = action
+        self.pingee = pingee
+        self.channel = channel
 
     def process(self, queue):
+        if self.pingee:
+            queue.put(MessageEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()),
+                                   self.pingee,
+                                   "mean!",
+                                   self.channel,
+                                   False))
         if self.user.isOnline:
             return "{0}  * {1} {2}\n".format(self._generateTime(), self.user.nick, self.action)
 
