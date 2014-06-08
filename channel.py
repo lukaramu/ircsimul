@@ -1,5 +1,4 @@
 from random import choice, randint, random, uniform
-import os
 
 import helpers
 from user import User
@@ -8,12 +7,6 @@ import userTypes
 nicksPerUser = 3
 minNickLenght = 6
 lowercaseNickProbability = 0.5
-
-# user/host source files:
-userfileName = os.path.join(os.path.dirname(__file__), 'users.txt')
-prefixfileName = os.path.join(os.path.dirname(__file__), 'adjectives.txt')
-nounfileName = os.path.join(os.path.dirname(__file__), 'nouns.txt')
-placesfileName = os.path.join(os.path.dirname(__file__), 'places.txt')
 
 # probabilities for various user types
 lowercaseNoPunctuationUserProbability = 0.4                                 # type 0
@@ -68,12 +61,6 @@ class Channel(object):
                 pass
             nicks.append(nick)
 
-        # load lists for username and hostmask generation
-        userList = helpers.splitFileToList(userfileName)
-        prefixList = helpers.splitFileToList(prefixfileName)
-        nounList = helpers.splitFileToList(nounfileName)
-        placesList = helpers.splitFileToList(placesfileName)
-
         # lists used to prevent the same username/hostmask appearing twice
         userNames = []
         hostmasks = []
@@ -86,15 +73,15 @@ class Channel(object):
         # choose values for each user, create user and append to users
         for i in range(0, self.userCount):
             # choose username
-            userName = choice(userList)
+            userName = choice(helpers.userList)
             while userName in userNames:
-                userName = choice(userList)
+                userName = choice(helpers.userList)
             userNames.append(userName)
 
             # choose hostmask
-            hostmask = self._joinHostmask(choice(prefixList), choice(nounList), choice(placesList))
+            hostmask = self._joinHostmask(choice(helpers.prefixList), choice(helpers.nounList), choice(helpers.placesList))
             while hostmask in hostmasks:
-                hostmask = self._joinHostmask(choice(prefixList), choice(nounList), choice(placesList))
+                hostmask = self._joinHostmask(choice(helpers.prefixList), choice(helpers.nounList), choice(helpers.placesList))
             hostmasks.append(hostmask)
 
             # create list of possible nicks for user from list of overall possible nicks

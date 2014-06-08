@@ -1,3 +1,4 @@
+import os
 import string
 import sys
 from random import random
@@ -25,6 +26,17 @@ def splitFileToList(filename):
     splitList = f.read().split()
     f.close()
     return splitList
+
+# user/host source files:
+userfileName = os.path.join(os.path.dirname(__file__), 'users.txt')
+prefixfileName = os.path.join(os.path.dirname(__file__), 'adjectives.txt')
+nounfileName = os.path.join(os.path.dirname(__file__), 'nouns.txt')
+placesfileName = os.path.join(os.path.dirname(__file__), 'places.txt')
+
+userList = splitFileToList(userfileName)
+prefixList = splitFileToList(prefixfileName)
+nounList = splitFileToList(nounfileName)
+placesList = splitFileToList(placesfileName)
 
 def flavourText(text, user):
     # returns text with 'flavour'

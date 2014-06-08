@@ -1,5 +1,5 @@
 import datetime
-from random import random
+from random import random, choice
 
 import helpers
 from channel import nicksPerUser
@@ -128,9 +128,13 @@ class MessageEvent(Event):
                         # user action event
                         actionDate = self.date + datetime.timedelta(seconds = 5 + 2 * random())
                         if random() < 0.8:
-                            queue.put(UserActionEvent(actionDate, self.user, "does action", None, self.channel))
+                            actionText = "likes {0} {1}".format(choice(helpers.prefixList), choice(helpers.nounList))
+                            queue.put(UserActionEvent(actionDate, self.user, actionText, None, self.channel))
                         else:
                             pingee = self.channel.selectOnlineUser()
+                            # make sure users doesn't slap themselves, because that is just dumb
+                            while pingee == self.user:
+                                pingee = self.channel.selectOnlineUser()
                             queue.put(UserActionEvent(actionDate, self.user, "slaps {0} around a bit with a large trout".format(pingee.nick), pingee, self.channel))
                     else:
                         # kick event

@@ -188,7 +188,7 @@ if __name__ == "__main__":
     parser.add_argument("-l", "--lines", help="number of lines to be generated, -1 --> infinite lines", type=int)
     parser.add_argument("-m", "--metadata", help="prints metadata to file meta.log", action="store_true")
     parser.add_argument("-o", "--output", help="sets output file (if not given, logs to ircsimul.log)", type=str)
-    parser.add_argument("-u", "--users", help="number of users", type=int)
+    parser.add_argument("-u", "--users", help="number of users, must be less than lines in users.txt", type=int)
     parser.add_argument("--debug", help="prints debug stuff", action="store_true")
     parser.add_argument("--loginitpop", help="log initial population of channel, use Ctrl+C to quit", action="store_true")
     parser.add_argument("--realtime", help="toggles output to stdout", action="store_true")
@@ -218,6 +218,8 @@ if __name__ == "__main__":
 
     if args.users:
         users = args.users
+    else:
+        users = 40
 
     main(lineMax=lineMax, logfileName=logfileName, writeStdOut=args.stdout, realTime=args.realtime,
         logInitialPopulation=args.loginitpop, meta=args.metadata, days=days, users=users)
