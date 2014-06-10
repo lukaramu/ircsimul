@@ -220,7 +220,7 @@ if __name__ == "__main__":
         users = 40
 
     if args.channelname:
-        channelName = args.channelname:
+        channelName = args.channelname
     else:
         channelName = 'channel'
 
