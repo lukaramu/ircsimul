@@ -38,11 +38,6 @@ prefixList = splitFileToList(prefixfileName)
 nounList = splitFileToList(nounfileName)
 placesList = splitFileToList(placesfileName)
 
-topicfileName = os.path.join(os.path.dirname(__file__), 'SONNETS.txt')
-_topicFile = open(topicfileName, 'rt')
-topicList = [line for line in _topicFile]
-_topicFile.close
-
 def flavourText(text, user):
     # returns text with 'flavour'
     if random() < userTypes.useProbabilities[user.userType]:

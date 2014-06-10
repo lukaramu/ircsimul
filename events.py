@@ -130,9 +130,7 @@ class MessageEvent(Event):
                             # user action event
                             actionDate = self.date + datetime.timedelta(seconds = 5 + 2 * random())
                             if random() < 0.8:
-                                actionText = "likes {0} {1}".format(choice(helpers.prefixList), choice(helpers.nounList))
-                                helpers.debugPrint("  * {0} {1}\n".format(self.user.nick, actionText))
-                                queue.put(UserActionEvent(actionDate, self.user, actionText, None, self.channel))
+                                queue.put(UserActionEvent(actionDate, self.user, "likes {0} {1}".format(choice(helpers.prefixList), choice(helpers.nounList)), None, self.channel))
                             else:
                                 pingee = self.channel.selectOnlineUser()
                                 # make sure users doesn't slap themselves, because that is just dumb
@@ -151,7 +149,7 @@ class MessageEvent(Event):
                         queue.put(NickChangeEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()), self.user))
                 else:
                     # topic change event
-                    queue.put(TopicChangeEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()), self.user, self.channel, choice(helpers.topicList)))
+                    queue.put(TopicChangeEvent(self.date + datetime.timedelta(seconds = 5 + 2 * random()), self.user, self.channel, self.user.markovGenerator.generateTopic()))
         # if user is offline, put date of next message after next join
         else:
             if messageDate < self.user.nextJoin:
@@ -235,4 +233,4 @@ class TopicChangeEvent(Event):
 
     def process(self, queue):
         if self.user.isOnline:
-            return "{0} -!- {1} changed the topic of #{2} to: {3}".format(self._generateTime(), self.user.nick, self.channel.name, self.topic)
+            return "{0} -!- {1} changed the topic of #{2} to: {3}\n".format(self._generateTime(), self.user.nick, self.channel.name, self.topic)

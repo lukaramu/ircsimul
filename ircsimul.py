@@ -20,8 +20,7 @@ from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, Us
 # TODO: mentions (or rather pings)
 # TODO: make users not join every day
 # might be cool: having them ping each other in "conversations" where only the last N messages of the person they are pinging are used in the generator so the conversation is "topical"
-# TODO: channel modes (o and b) --> ops and bans 
-# TODO: topics
+# TODO: channel modes (o and b) --> ops and bans
 # TODO: notices
 # TODO: urls
 # TODO: idlers???
@@ -30,7 +29,6 @@ from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, Us
 # TODO: make kicks have an internal reason
 
 # TODO: different nicks, different behaviour (longshot):
-# aloof (doesn't mention often)
 # negativity
 # questions asked
 # relationships
@@ -44,6 +42,7 @@ from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, Us
 # TODO: Make some of them command line arguments?
 sourcefileName = os.path.join(os.path.dirname(__file__), 'ZARATHUSTRA.txt')
 reasonsfileName = os.path.join(os.path.dirname(__file__), 'reasons.txt')
+topicfileName = os.path.join(os.path.dirname(__file__), 'SONNETS.txt')
 metafileName = os.path.join(os.path.dirname(__file__), 'meta.log')
 channelName = 'channel'
 # END flags and sizes
@@ -65,7 +64,7 @@ def generateMetaFile(channel):
 def main(lineMax=200000, logfileName='ircsimul.log', writeStdOut=False, realTime=False, 
     logInitialPopulation=False, meta=False, days=-1, users=40):
     # load up markov generator
-    markovGenerator = markov.MarkovGenerator(sourcefileName, reasonsfileName)
+    markovGenerator = markov.MarkovGenerator(sourcefileName, reasonsfileName, topicfileName)
 
     # load channel
     channel = Channel(channelName, markovGenerator, users)

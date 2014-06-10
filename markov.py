@@ -9,11 +9,13 @@ EOL = [',', ';', '-']
 EOSL = EOS + EOL
 
 class MarkovGenerator(object):
-    def __init__(self, messageFilename, reasonsFilename):
+    def __init__(self, messageFilename, reasonsFilename, topicFilename):
         self.messageDict = self._generateDictionary(messageFilename)
         self.messageStartList = self._generateStartList(self.messageDict)
         self.reasonsDict = self._generateDictionary(reasonsFilename)
         self.reasonsStartList = self._generateStartList(self.reasonsDict)
+        self.topicDict = self._generateDictionary(topicFilename)
+        self.topicStartList = self._generateStartList(self.topicDict)
 
     def _generateDictionary(self, filename):
         # build morkov dictionary from words in given file
@@ -60,3 +62,6 @@ class MarkovGenerator(object):
 
     def generateReason(self):
         return self._generateSentence(self.reasonsDict, self.reasonsStartList, EOSL)
+
+    def generateTopic(self):
+        return self._generateSentence(self.topicDict, self.topicStartList, EOSL)
