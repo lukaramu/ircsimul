@@ -44,7 +44,6 @@ sourcefileName = os.path.join(os.path.dirname(__file__), 'ZARATHUSTRA.txt')
 reasonsfileName = os.path.join(os.path.dirname(__file__), 'reasons.txt')
 topicfileName = os.path.join(os.path.dirname(__file__), 'SONNETS.txt')
 metafileName = os.path.join(os.path.dirname(__file__), 'meta.log')
-channelName = 'channel'
 # END flags and sizes
 
 def generateMetaFile(channel):
@@ -62,7 +61,7 @@ def generateMetaFile(channel):
     metaFile.close()
 
 def main(lineMax=200000, logfileName='ircsimul.log', writeStdOut=False, realTime=False, 
-    logInitialPopulation=False, meta=False, days=-1, users=40):
+    logInitialPopulation=False, meta=False, days=-1, users=40, channelName='channel'):
     # load up markov generator
     markovGenerator = markov.MarkovGenerator(sourcefileName, reasonsfileName, topicfileName)
 
@@ -182,6 +181,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-a", "--activity", help="sets intrinsic message activity per day (default 5000)", type=int)
+    parser.add_argument("-c", "--channelname", help="sets channel name", type=str)
     parser.add_argument("-d", "--days", help="number of days to generate, overwrites --lines", type=int)
     parser.add_argument("-l", "--lines", help="number of lines to be generated, -1 --> infinite lines", type=int)
     parser.add_argument("-m", "--metadata", help="prints metadata to file meta.log", action="store_true")
@@ -219,5 +219,11 @@ if __name__ == "__main__":
     else:
         users = 40
 
+    if args.channelname:
+        channelName = args.channelname:
+    else:
+        channelName = 'channel'
+
     main(lineMax=lineMax, logfileName=logfileName, writeStdOut=args.stdout, realTime=args.realtime,
-        logInitialPopulation=args.loginitpop, meta=args.metadata, days=days, users=users)
+        logInitialPopulation=args.loginitpop, meta=args.metadata, days=days, users=users,
+        channelName=channelName)
