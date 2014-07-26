@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import cProfile
+import codecs
 import sys
 import os
 from random import choice, random
@@ -40,11 +41,14 @@ from events import KickEvent, LeaveEvent, QuitEvent, JoinEvent, MessageEvent, Us
 
 # START flags and sizes
 # TODO: Make some of them command line arguments?
-sourcefileName = os.path.join(os.path.dirname(__file__), 'ZARATHUSTRA.txt')
+sourcefileName = os.path.join(os.path.dirname(__file__), 'poems.log')
 reasonsfileName = os.path.join(os.path.dirname(__file__), 'reasons.txt')
 topicfileName = os.path.join(os.path.dirname(__file__), 'SONNETS.txt')
 metafileName = os.path.join(os.path.dirname(__file__), 'meta.log')
 # END flags and sizes
+
+# sets stdout encoding to utf-8
+sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach())
 
 def generateMetaFile(channel):
     metaFile = open(metafileName, 'w')

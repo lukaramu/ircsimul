@@ -1,4 +1,5 @@
 from random import choice, randint, random, uniform
+import sys
 
 import helpers
 from user import User
@@ -23,10 +24,6 @@ class Channel(object):
         self.loadUsers(generator)
         self.day = 0
 
-    def _chooseNick(self, generator, startListLen):
-        # returns nick from list of possible starting words removes punctuation from nick
-        return generator.messageStartList[randint(0, startListLen - 1)][0].translate(helpers.removePunctuationMap)
-
     def _joinHostmask(self, prefix, noun, place):
         # returns combined hostmask
         strList = []
@@ -41,28 +38,26 @@ class Channel(object):
     def loadUsers(self, generator):
         # load nicks from startList items, as they all have a uppercase starting letter
         # depends on startList already being generated
-        startListLen = len(generator.messageStartList)
+        nicks = []
+        lowerList = []
+        for start in generator.messageStartList:
+            if start[0].lower() not in lowerList and len(start[0]) >= minNickLenght:
+                lowerList.append(start[0].lower())
+                if random() < lowercaseNickProbability:
+                    nicks.append(start[0].lower())
+                else:
+                    nicks.append(start[0])
+
+        maxUsers = int(len(nicks) / nicksPerUser)
+
+        if self.userCount > maxUsers:
+            sys.stderr.write("WARNING: Number of users too big for number of possible nicknames.\n")
+            sys.stderr.write("         Generating {0} users instead\n".format(str(maxUsers)))
+            self.userCount = maxUsers
 
         self.users = []
-        nicks = []
 
-        # generate list of possible nicks
-        for i in range(0, self.userCount * nicksPerUser):
-            # choose nick from list of possible starting words, remove punctuation from nick
-            nick = self._chooseNick(generator, startListLen)
-            # make sure nick isn't in nicks and of some lenght
-            while (nick.lower() in [nick.lower() for nick in nicks]) or (len(nick) < minNickLenght):
-                nick = self._chooseNick(generator, startListLen)
-
-            # make some of them lowercase
-            if random() < lowercaseNickProbability:
-                nick = nick.lower()
-            else:
-                pass
-            nicks.append(nick)
-
-        # lists used to prevent the same username/hostmask appearing twice
-        userNames = []
+        # lists used to prevent the same hostmask appearing twice
         hostmasks = []
 
         self.offline = []
@@ -74,9 +69,6 @@ class Channel(object):
         for i in range(0, self.userCount):
             # choose username
             userName = choice(helpers.userList)
-            while userName in userNames:
-                userName = choice(helpers.userList)
-            userNames.append(userName)
 
             # choose hostmask
             hostmask = self._joinHostmask(choice(helpers.prefixList), choice(helpers.nounList), choice(helpers.placesList))

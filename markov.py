@@ -5,7 +5,7 @@ import helpers
 
 # list with symbols that end a sentence
 EOS = ['.', '?', '!', ':', '"']
-EOL = [',', ';', '-']
+EOL = [',', ';']
 EOSL = EOS + EOL
 
 class MarkovGenerator(object):
